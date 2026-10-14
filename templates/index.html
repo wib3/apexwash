@@ -9,5 +9,11 @@
     <h1>{{ .ShopName }} - The Sntino Executive Care</h1>
 
     <p>{{ .Tagline }}</p>
+    <h2>Our Prices</h2>
+    <ul>
+        {{range .Services}}
+            <li>{{.Name}} costs ₦{{.Price}}</li>
+        {{end}}
+    </ul>
 </body>
 </html>
