@@ -18,6 +18,18 @@ type PageData struct {
 	Services []ServiceItem
 }
 
+func BookHAndler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not Allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	customer := r.FormValue("customer_name")
+	service := r.FormValue("service_name")
+	quantity := r.FormValue("quantity")
+
+	fmt.Fprintf(w, "Order Recieved! Thank you, %s. You booked %s (Qty: %s).", customer, service, quantity)
+}
+
 func HomeHandler(w http.ResponseWriter, r *http.Request) {
 	tmpl, err := template.ParseFiles("templates/index.html")
 	if err != nil {
@@ -39,6 +51,7 @@ func HomeHandler(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	http.HandleFunc("/", HomeHandler)
+	http.HandleFunc("/book", BookHAndler)
 	fmt.Println("Server is active on http://localhost:8081")
 	err := http.ListenAndServe(":8081", nil)
 	if err != nil {
