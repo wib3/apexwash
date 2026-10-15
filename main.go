@@ -17,6 +17,15 @@ type PageData struct {
 	ShopName string
 	Tagline  string
 	Services []ServiceItem
+	Orders   []Order
+}
+
+type Order struct {
+	CustomerName string
+	ServiceName  string
+	Quantity     int
+	TotalCost    int
+	Status       string
 }
 
 var serviceList = []ServiceItem{
@@ -25,6 +34,8 @@ var serviceList = []ServiceItem{
 	{Name: "Native Wear(2-piece)", Price: 1200},
 	{Name: "Bed Sheet/Duvet", Price: 1500},
 }
+
+var orderList []Order
 
 func BookHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
@@ -51,7 +62,17 @@ func BookHandler(w http.ResponseWriter, r *http.Request) {
 
 	totalCost := qty * unitprice
 
-	fmt.Fprintf(w, "Order Recieved! Thank you, %s. You booked %s (Qty: %s). Total Bill: ₦%d", customer, service, quantity, totalCost)
+	newOrder := Order{
+		CustomerName: customer,
+		ServiceName:  service,
+		Quantity:     qty,
+		TotalCost:    totalCost,
+		Status:       "Pending",
+	}
+
+	orderList = append(orderList, newOrder)
+
+	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
 func HomeHandler(w http.ResponseWriter, r *http.Request) {
@@ -64,6 +85,7 @@ func HomeHandler(w http.ResponseWriter, r *http.Request) {
 		ShopName: "ApexWash",
 		Tagline:  "Engineered by IB",
 		Services: serviceList,
+		Orders:   orderList,
 	}
 	tmpl.Execute(w, data)
 }

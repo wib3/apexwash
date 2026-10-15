@@ -38,5 +38,16 @@
         </div>
         <button type="submit">Submit Order</button>
     </form>
+        <h2>Active Laundry Orders</h2>
+        <ul>
+            {{range .Orders}}
+                <li>
+                    <strong>{{.CustomerName}}</strong> - {{.ServiceName}} (Qty: {{.Quantity}} | Total: ₦{{.TotalCost}} | Status: <em>{{.Status}}</em>)  
+                </li>
+            {{else}}
+                <li>No Orders booked</li>
+            {{end}}
+        </ul>
+   
 </body>
 </html>
