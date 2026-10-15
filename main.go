@@ -5,6 +5,7 @@ import (
 	"html/template"
 	"log"
 	"net/http"
+	"strconv"
 )
 
 type ServiceItem struct {
@@ -18,7 +19,14 @@ type PageData struct {
 	Services []ServiceItem
 }
 
-func BookHAndler(w http.ResponseWriter, r *http.Request) {
+var serviceList = []ServiceItem{
+	{Name: "Shirt(Wash and Iron)", Price: 500},
+	{Name: "Trousers", Price: 600},
+	{Name: "Native Wear(2-piece)", Price: 1200},
+	{Name: "Bed Sheet/Duvet", Price: 1500},
+}
+
+func BookHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not Allowed", http.StatusMethodNotAllowed)
 		return
@@ -27,7 +35,23 @@ func BookHAndler(w http.ResponseWriter, r *http.Request) {
 	service := r.FormValue("service_name")
 	quantity := r.FormValue("quantity")
 
-	fmt.Fprintf(w, "Order Recieved! Thank you, %s. You booked %s (Qty: %s).", customer, service, quantity)
+	qty, err := strconv.Atoi(quantity)
+	if err != nil {
+		http.Error(w, "Invalid Quantity Entered", http.StatusBadRequest)
+		return
+	}
+
+	var unitprice int
+	for _, item := range serviceList {
+		if item.Name == service {
+			unitprice = item.Price
+			break
+		}
+	}
+
+	totalCost := qty * unitprice
+
+	fmt.Fprintf(w, "Order Recieved! Thank you, %s. You booked %s (Qty: %s). Total Bill: ₦%d", customer, service, quantity, totalCost)
 }
 
 func HomeHandler(w http.ResponseWriter, r *http.Request) {
@@ -39,19 +63,14 @@ func HomeHandler(w http.ResponseWriter, r *http.Request) {
 	data := PageData{
 		ShopName: "ApexWash",
 		Tagline:  "Engineered by IB",
-		Services: []ServiceItem{
-			{Name: "Shirt(Wash and Iron)", Price: 500},
-			{Name: "Trousers", Price: 600},
-			{Name: "Native Wear(2-piece)", Price: 1200},
-			{Name: "Bed Sheet/Duvet", Price: 1500},
-		},
+		Services: serviceList,
 	}
 	tmpl.Execute(w, data)
 }
 
 func main() {
 	http.HandleFunc("/", HomeHandler)
-	http.HandleFunc("/book", BookHAndler)
+	http.HandleFunc("/book", BookHandler)
 	fmt.Println("Server is active on http://localhost:8081")
 	err := http.ListenAndServe(":8081", nil)
 	if err != nil {
