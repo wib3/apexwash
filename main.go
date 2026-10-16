@@ -21,6 +21,7 @@ type PageData struct {
 }
 
 type Order struct {
+	ID           int
 	CustomerName string
 	ServiceName  string
 	Quantity     int
@@ -63,6 +64,7 @@ func BookHandler(w http.ResponseWriter, r *http.Request) {
 	totalCost := qty * unitprice
 
 	newOrder := Order{
+		ID:           len(orderList) + 1,
 		CustomerName: customer,
 		ServiceName:  service,
 		Quantity:     qty,
@@ -93,9 +95,35 @@ func HomeHandler(w http.ResponseWriter, r *http.Request) {
 func main() {
 	http.HandleFunc("/", HomeHandler)
 	http.HandleFunc("/book", BookHandler)
+	http.HandleFunc("/update-status", UpdateStatusHandler)
 	fmt.Println("Server is active on http://localhost:8081")
 	err := http.ListenAndServe(":8081", nil)
 	if err != nil {
 		log.Fatal("server error: ", err)
 	}
+}
+
+func UpdateStatusHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	idstr := r.FormValue("order_id")
+	id, err := strconv.Atoi(idstr)
+	if err != nil {
+		http.Error(w, "Invalid order ID", http.StatusBadRequest)
+		return
+	}
+	for i := range orderList {
+		if orderList[i].ID == id {
+			if orderList[i].Status == "Pending" {
+				orderList[i].Status = "Washing and ironing"
+			} else if orderList[i].Status == "Washing and ironing" {
+				orderList[i].Status = "Ready for pickup"
+			}
+			break
+		}
+
+	}
+	http.Redirect(w, r, "/", http.StatusSeeOther)
 }

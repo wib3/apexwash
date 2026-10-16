@@ -42,7 +42,12 @@
         <ul>
             {{range .Orders}}
                 <li>
-                    <strong>{{.CustomerName}}</strong> - {{.ServiceName}} (Qty: {{.Quantity}} | Total: ₦{{.TotalCost}} | Status: <em>{{.Status}}</em>)  
+                    <strong>#{{.ID}} {{.CustomerName}}</strong> - {{.ServiceName}} (Qty: {{.Quantity}} | Total: ₦{{.TotalCost}} | Status: <em>{{.Status}}</em>)
+
+                    <form action="/update-status" method="post" style="display:inline;">
+                        <input type="hidden" name="order_id" value="{{.ID}}">
+                        <button type="submit">Next Stage &rarr;</button>
+                    </form>
                 </li>
             {{else}}
                 <li>No Orders booked</li>
