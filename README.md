@@ -55,7 +55,8 @@ apexwash/
 
 1. **Clone the repository:**
    ```bash
-   git clone [https://github.com/cruelsntino/apexwash.git](https://github.com/cruelsntino/apexwash.git)
+   git clone [https://github.com/wib3/apexwash.git](https://github.com/wib3/apexwash.git)
+   cd apexwash
    cd apexwash
    ```
 
