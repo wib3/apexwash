@@ -10,6 +10,16 @@
     <h1>{{ .ShopName }} - The Sntino Executive Care</h1>
 
     <p>{{ .Tagline }}</p>
+    <div style="display: flex; gap: 20px; margin-bottom: 24px;">
+        <div style="flex: 1; background: #1e293b; color: white; padding: 60px; border-radius: 8px; text-align: center;">
+            <div style="font-size: 0.85rem; color: #94a3b8; text-transform: uppercase;">Active Orders</div>
+            <div style="font-size: 1.8rem; font-weight: bold; margin-top: 4px;">{{ .TotalOrders }}</div>
+        </div>
+        <div style="flex: 1; background: #0f766e; color: white; padding: 16px; border-radius: 8px; text-align: center;">
+            <div style="font-size: 0.85rem; color: #99f6e4; text-transform: uppercase;">Active Pipeline Value</div>
+            <div style="font-size: 1.8rem; font-weight: bold; margin-top: 4px;">₦{{ .TotalRevenue }}</div>
+        </div>
+    </div>
     <h2>Our Prices</h2>
     <ul>
         {{range .Services}}

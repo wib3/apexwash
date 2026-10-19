@@ -6,10 +6,12 @@ type ServiceItem struct {
 }
 
 type PageData struct {
-	ShopName string
-	Tagline  string
-	Services []ServiceItem
-	Orders   []Order
+	ShopName     string
+	Tagline      string
+	Services     []ServiceItem
+	Orders       []Order
+	TotalOrders  int
+	TotalRevenue int
 }
 
 type Order struct {
@@ -27,5 +29,3 @@ var serviceList = []ServiceItem{
 	{Name: "Native Wear(2-piece)", Price: 1200},
 	{Name: "Bed Sheet/Duvet", Price: 1500},
 }
-
-

@@ -31,16 +31,6 @@ func BookHandler(w http.ResponseWriter, r *http.Request) {
 
 	totalCost := qty * unitprice
 
-	// newOrder := Order{
-	// 	ID:           len(orderList) + 1,
-	// 	CustomerName: customer,
-	// 	ServiceName:  service,
-	// 	Quantity:     qty,
-	// 	TotalCost:    totalCost,
-	// 	Status:       "Pending",
-	// }
-
-	// orderList = append(orderList, newOrder)
 	insertSQL := `INSERT INTO orders (customer_name, service_name, quantity, total_cost, status) VALUES(?, ?, ?, ?, ?)`
 	_, err = db.Exec(insertSQL, customer, service, qty, totalCost, "Pending")
 	if err != nil {
@@ -65,11 +55,13 @@ func HomeHandler(w http.ResponseWriter, r *http.Request) {
 	defer rows.Close()
 
 	var orders []Order
+	var totalRevenue int
 
 	for rows.Next() {
 		var o Order
 		rows.Scan(&o.ID, &o.CustomerName, &o.ServiceName, &o.Quantity, &o.TotalCost, &o.Status)
 		orders = append(orders, o)
+		totalRevenue += o.TotalCost
 	}
 	if err := rows.Err(); err != nil {
 		http.Error(w, "Error reading orders: "+err.Error(), http.StatusInternalServerError)
@@ -81,6 +73,8 @@ func HomeHandler(w http.ResponseWriter, r *http.Request) {
 		Tagline:  "Engineered by IB",
 		Services: serviceList,
 		Orders:   orders,
+		TotalOrders: len(orders),
+		TotalRevenue: totalRevenue,
 	}
 	tmpl.Execute(w, data)
 }
