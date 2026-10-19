@@ -7,13 +7,15 @@ import (
 )
 
 func main() {
+	InitDB()
+
 	fs := http.FileServer(http.Dir("static"))
 
 	http.Handle("/static/", http.StripPrefix("/static/", fs))
 	http.HandleFunc("/", HomeHandler)
 	http.HandleFunc("/book", BookHandler)
 	http.HandleFunc("/update-status", UpdateStatusHandler)
-	
+
 	fmt.Println("Server is active on http://localhost:8081")
 	err := http.ListenAndServe(":8081", nil)
 	if err != nil {

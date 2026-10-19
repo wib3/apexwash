@@ -31,17 +31,22 @@ func BookHandler(w http.ResponseWriter, r *http.Request) {
 
 	totalCost := qty * unitprice
 
-	newOrder := Order{
-		ID:           len(orderList) + 1,
-		CustomerName: customer,
-		ServiceName:  service,
-		Quantity:     qty,
-		TotalCost:    totalCost,
-		Status:       "Pending",
+	// newOrder := Order{
+	// 	ID:           len(orderList) + 1,
+	// 	CustomerName: customer,
+	// 	ServiceName:  service,
+	// 	Quantity:     qty,
+	// 	TotalCost:    totalCost,
+	// 	Status:       "Pending",
+	// }
+
+	// orderList = append(orderList, newOrder)
+	insertSQL := `INSERT INTO orders (customer_name, service_name, quantity, total_cost, status) VALUES(?, ?, ?, ?, ?)`
+	_, err = db.Exec(insertSQL, customer, service, qty, totalCost, "pending")
+	if err != nil {
+		http.Error(w, "Failed to save order", http.StatusInternalServerError)
+		return
 	}
-
-	orderList = append(orderList, newOrder)
-
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
@@ -51,11 +56,31 @@ func HomeHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Could not load page: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
+	rows, err := db.Query("SELECT id, customer_name, service_name, quantity, total_cost, status FROM orders")
+	if err != nil {
+		http.Error(w, "Could not load orders", http.StatusInternalServerError)
+		return
+	}
+	if err := rows.Err(); err != nil{
+		http.Error(w, "Error reading orders: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	defer rows.Close()
+
+	var orders []Order
+
+	for rows.Next() {
+		var o Order
+		rows.Scan(&o.ID, &o.CustomerName, &o.ServiceName, &o.Quantity, &o.TotalCost, &o.Status)
+		orders = append(orders, o)
+	}
+
 	data := PageData{
 		ShopName: "ApexWash",
 		Tagline:  "Engineered by IB",
 		Services: serviceList,
-		Orders:   orderList,
+		Orders:   orders,
 	}
 	tmpl.Execute(w, data)
 }
