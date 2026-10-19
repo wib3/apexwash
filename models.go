@@ -28,4 +28,4 @@ var serviceList = []ServiceItem{
 	{Name: "Bed Sheet/Duvet", Price: 1500},
 }
 
-var orderList []Order
+

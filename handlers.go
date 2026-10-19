@@ -42,7 +42,7 @@ func BookHandler(w http.ResponseWriter, r *http.Request) {
 
 	// orderList = append(orderList, newOrder)
 	insertSQL := `INSERT INTO orders (customer_name, service_name, quantity, total_cost, status) VALUES(?, ?, ?, ?, ?)`
-	_, err = db.Exec(insertSQL, customer, service, qty, totalCost, "pending")
+	_, err = db.Exec(insertSQL, customer, service, qty, totalCost, "Pending")
 	if err != nil {
 		http.Error(w, "Failed to save order", http.StatusInternalServerError)
 		return
@@ -61,10 +61,6 @@ func HomeHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Could not load orders", http.StatusInternalServerError)
 		return
 	}
-	if err := rows.Err(); err != nil{
-		http.Error(w, "Error reading orders: "+err.Error(), http.StatusInternalServerError)
-		return
-	}
 
 	defer rows.Close()
 
@@ -74,6 +70,10 @@ func HomeHandler(w http.ResponseWriter, r *http.Request) {
 		var o Order
 		rows.Scan(&o.ID, &o.CustomerName, &o.ServiceName, &o.Quantity, &o.TotalCost, &o.Status)
 		orders = append(orders, o)
+	}
+	if err := rows.Err(); err != nil {
+		http.Error(w, "Error reading orders: "+err.Error(), http.StatusInternalServerError)
+		return
 	}
 
 	data := PageData{
@@ -96,16 +96,47 @@ func UpdateStatusHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid order ID", http.StatusBadRequest)
 		return
 	}
-	for i := range orderList {
-		if orderList[i].ID == id {
-			if orderList[i].Status == "Pending" {
-				orderList[i].Status = "Washing and ironing"
-			} else if orderList[i].Status == "Washing and ironing" {
-				orderList[i].Status = "Ready for pickup"
-			}
-			break
-		}
+	var currentStatus string
+	err = db.QueryRow("SELECT status FROM orders WHERE id = ?", id).Scan(&currentStatus)
+	if err != nil {
+		http.Error(w, "Order not found", http.StatusNotFound)
+		return
+	}
 
+	var newStatus string
+	if currentStatus == "Pending" || currentStatus == "pending" {
+		newStatus = "Washing & Ironing"
+	} else if currentStatus == "Washing & Ironing" {
+		newStatus = "Ready for Pickup"
+	} else {
+		newStatus = currentStatus
+	}
+
+	_, err = db.Exec("UPDATE orders SET status = ? WHERE id = ?", newStatus, id)
+	if err != nil {
+		http.Error(w, "Failed to update status", http.StatusInternalServerError)
+		return
+	}
+
+	http.Redirect(w, r, "/", http.StatusSeeOther)
+}
+
+func DeleteOrderHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	idStr := r.FormValue("order_id")
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		http.Error(w, "Invalid order ID", http.StatusBadRequest)
+		return
+	}
+
+	_, err = db.Exec("DELETE FROM orders WHERE id = ?", id)
+	if err != nil {
+		http.Error(w, "Could not delete order", http.StatusInternalServerError)
+		return
 	}
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
