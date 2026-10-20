@@ -46,7 +46,22 @@ func HomeHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Could not load page: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
-	rows, err := db.Query("SELECT id, customer_name, service_name, quantity, total_cost, status FROM orders")
+	searchQuery := r.URL.Query().Get("search")
+	statusFilter := r.URL.Query().Get("status")
+
+	query := "SELECT id, customer_name, service_name, quantity, total_cost, status FROM orders WHERE 1=1"
+	var args []any
+
+	if searchQuery != "" {
+		query += " AND customer_name LIKE ?"
+		args = append(args, "%"+searchQuery+"%")
+	}
+	if statusFilter != "" {
+		query += " AND status = ?"
+		args = append(args, statusFilter)
+	}
+
+	rows, err := db.Query(query, args...)
 	if err != nil {
 		http.Error(w, "Could not load orders", http.StatusInternalServerError)
 		return
@@ -69,12 +84,14 @@ func HomeHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	data := PageData{
-		ShopName: "ApexWash",
-		Tagline:  "Engineered by IB",
-		Services: serviceList,
-		Orders:   orders,
-		TotalOrders: len(orders),
+		ShopName:     "ApexWash",
+		Tagline:      "Engineered by IB",
+		Services:     serviceList,
+		Orders:       orders,
+		TotalOrders:  len(orders),
 		TotalRevenue: totalRevenue,
+		SearchQuery:  searchQuery,
+		StatusFilter: statusFilter,
 	}
 	tmpl.Execute(w, data)
 }

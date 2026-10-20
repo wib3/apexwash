@@ -50,6 +50,22 @@
         <button type="submit">Submit Order</button>
     </form>
         <h2>Active Laundry Orders</h2>
+        <div style="margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+            <form action="/" method="get" style="display: flex; gap: 8px; margin: 0;">
+                <input type="text" name="search" placeholder="Search customer name..." value="{{ .SearchQuery }}" style="padding: 8px; border: 1px solid #cbd5e1; border-radius: 6px;">
+                <button type="submit">Search</button>
+                {{ if or .SearchQuery .StatusFilter }}
+                    <a href="/" style="padding: 8px 12px; background: #64748b; color: white; text-decoration: none; border-radius: 6px; font-size: 0.9rem;">Clear</a>
+                {{end}}
+            </form>
+
+            <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                <a href="/" style="padding: 6px 12px; border-radius: 6px; text-decoration: none; background: #e2e8f0; color: #1e293b; font-size: 0.85rem; font-weight: bold;">All</a>
+                <a href="/?status=Pending" style="padding: 6px 12px; border-radius: 6px; text-decoration: none; background: #fef3c7; color: #92400e; font-size: 0.85rem; font-weight: bold;">Pending</a>
+                <a href="/?status=Washing+%26+Ironing" style="padding: 6px 12px; border-radius: 6px; text-decoration: none; background: #dbeafe; color: #1e40af; font-size: 0.85rem; font-weight: bold;">Washing &amp; Ironing</a>
+                <a href="/?status=Ready+for+Pickup" style="padding: 6px 12px; border-radius: 6px; text-decoration: none; background: #dcfce7; color: #166534; font-size: 0.85rem; font-weight: bold;">Ready for Pickup</a>
+            </div>
+        </div>
         <ul>
             {{range .Orders}}
                 <li>

@@ -12,6 +12,8 @@ type PageData struct {
 	Orders       []Order
 	TotalOrders  int
 	TotalRevenue int
+	SearchQuery  string
+	StatusFilter string
 }
 
 type Order struct {
