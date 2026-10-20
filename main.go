@@ -2,8 +2,8 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"net/http"
+	"os"
 )
 
 func main() {
@@ -20,9 +20,10 @@ func main() {
 	http.HandleFunc("/logout", LogoutHandler)
 	http.HandleFunc("/api/orders", APIorderHandler)
 
-	fmt.Println("Server is active on http://localhost:8081")
-	err := http.ListenAndServe(":8081", nil)
-	if err != nil {
-		log.Fatal("server error: ", err)
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8081"
 	}
+	fmt.Println("ApexWash Server is live on http://localhost:" + port)
+	http.ListenAndServe(":"+port, nil)
 }
