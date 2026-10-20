@@ -115,11 +115,12 @@ func UpdateStatusHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var newStatus string
-	if currentStatus == "Pending" || currentStatus == "pending" {
+	switch currentStatus {
+	case "Pending", "pending":
 		newStatus = "Washing & Ironing"
-	} else if currentStatus == "Washing & Ironing" {
+	case "Washing & Ironing":
 		newStatus = "Ready for Pickup"
-	} else {
+	default:
 		newStatus = currentStatus
 	}
 
