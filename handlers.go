@@ -6,6 +6,11 @@ import (
 	"strconv"
 )
 
+func isStaff(r *http.Request) bool {
+	cookie, err := r.Cookie("staff_session")
+	return err == nil && cookie.Value == "authenticated"
+}
+
 func BookHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not Allowed", http.StatusMethodNotAllowed)
@@ -92,6 +97,7 @@ func HomeHandler(w http.ResponseWriter, r *http.Request) {
 		TotalRevenue: totalRevenue,
 		SearchQuery:  searchQuery,
 		StatusFilter: statusFilter,
+		IsStaff:      isStaff(r),
 	}
 	tmpl.Execute(w, data)
 }
@@ -99,6 +105,10 @@ func HomeHandler(w http.ResponseWriter, r *http.Request) {
 func UpdateStatusHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	if !isStaff(r) {
+		http.Error(w, "Unauthorized: Staff login required", http.StatusUnauthorized)
 		return
 	}
 	idstr := r.FormValue("order_id")
@@ -138,6 +148,10 @@ func DeleteOrderHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
+	if !isStaff(r) {
+		http.Error(w, "Unauthorized: Staff login required", http.StatusUnauthorized)
+		return
+	}
 	idStr := r.FormValue("order_id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
@@ -150,5 +164,36 @@ func DeleteOrderHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Could not delete order", http.StatusInternalServerError)
 		return
 	}
+	http.Redirect(w, r, "/", http.StatusSeeOther)
+}
+
+func LoginHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Redirect(w, r, "/", http.StatusSeeOther)
+		return
+	}
+	password := r.FormValue("password")
+	if password != "apexadmin" {
+		http.Error(w, "Invalid staff password", http.StatusUnauthorized)
+		return
+	}
+
+	http.SetCookie(w, &http.Cookie{
+		Name:     "staff_session",
+		Value:    "authenticated",
+		Path:     "/",
+		HttpOnly: true,
+	})
+	http.Redirect(w, r, "/", http.StatusSeeOther)
+}
+
+func LogoutHandler(w http.ResponseWriter, r *http.Request) {
+	http.SetCookie(w, &http.Cookie{
+		Name:     "staff_session",
+		Value:    "",
+		Path:     "/",
+		MaxAge:   -1,
+		HttpOnly: true,
+	})
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }

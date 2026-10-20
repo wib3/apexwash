@@ -14,6 +14,7 @@ type PageData struct {
 	TotalRevenue int
 	SearchQuery  string
 	StatusFilter string
+	IsStaff      bool
 }
 
 type Order struct {
