@@ -2,6 +2,9 @@
 
 **Engineered by IB**
 
+**Engineered by IB**  
+🌐 **Live Demo:** [https://apexwash.onrender.com](https://apexwash.onrender.com) | 📡 **Live JSON API:** [https://apexwash.onrender.com/api/orders](https://apexwash.onrender.com/api/orders)
+
 ApexWash is a full-stack laundry order management and executive dashboard web application built in **Go (Golang)** using the standard library and backed by **SQLite**. It enables laundry operations to dynamically price services, book customer pickups, filter and search orders in real time, protect staff actions via HTTP cookie authentication, and expose order data through a JSON REST API.
 
 ---
