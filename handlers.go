@@ -5,6 +5,7 @@ import (
 	"html/template"
 	"net/http"
 	"strconv"
+	"os"
 )
 
 func isStaff(r *http.Request) bool {
@@ -173,8 +174,13 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 		return
 	}
+	expectedpassword := os.Getenv("STAFF_PASSWORD")
+	if expectedpassword == ""{
+		expectedpassword = "apexadmin"
+	}
+
 	password := r.FormValue("password")
-	if password != "apexadmin" {
+	if password != expectedpassword {
 		http.Error(w, "Invalid staff password", http.StatusUnauthorized)
 		return
 	}
