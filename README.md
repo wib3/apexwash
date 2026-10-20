@@ -106,3 +106,11 @@ apexwash/
 4. **Open in your browser:**
    - **Web Dashboard:** `http://localhost:8081` *(Default Staff Password: `apexadmin`)*
    - **JSON API:** `http://localhost:8081/api/orders`
+
+
+## 🧪 Running Automated Tests
+
+ApexWash includes unit and HTTP integration tests using Go's standard `testing` and `net/http/httptest` packages, backed by an isolated in-memory SQLite database (`:memory:`).
+
+```bash
+go test -v
