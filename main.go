@@ -18,6 +18,7 @@ func main() {
 	http.HandleFunc("/delete-order", DeleteOrderHandler)
 	http.HandleFunc("/login", LoginHandler)
 	http.HandleFunc("/logout", LogoutHandler)
+	http.HandleFunc("/api/orders", APIorderHandler)
 
 	fmt.Println("Server is active on http://localhost:8081")
 	err := http.ListenAndServe(":8081", nil)

@@ -18,12 +18,12 @@ type PageData struct {
 }
 
 type Order struct {
-	ID           int
-	CustomerName string
-	ServiceName  string
-	Quantity     int
-	TotalCost    int
-	Status       string
+	ID           int    `json:"id"`
+	CustomerName string `json:"customer_name"`
+	ServiceName  string `json:"service_name"`
+	Quantity     int    `json:"quantity"`
+	TotalCost    int    `json:"total_cost"`
+	Status       string `json:"status"`
 }
 
 var serviceList = []ServiceItem{

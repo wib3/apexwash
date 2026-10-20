@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"html/template"
 	"net/http"
 	"strconv"
@@ -196,4 +197,27 @@ func LogoutHandler(w http.ResponseWriter, r *http.Request) {
 		HttpOnly: true,
 	})
 	http.Redirect(w, r, "/", http.StatusSeeOther)
+}
+
+func APIorderHandler(w http.ResponseWriter, r *http.Request) {
+	rows, err := db.Query("SELECT id, customer_name, service_name, quantity, total_cost, status FROM orders")
+	if err != nil {
+		http.Error(w, "Could not load orders: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if err := rows.Err(); err != nil {
+		http.Error(w, "Error reading orders: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+	defer rows.Close()
+
+	orders := []Order{}
+
+	for rows.Next() {
+		var o Order
+		rows.Scan(&o.ID, &o.CustomerName, &o.ServiceName, &o.Quantity, &o.TotalCost, &o.Status)
+		orders = append(orders, o)
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(orders)
 }
