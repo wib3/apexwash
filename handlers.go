@@ -268,3 +268,24 @@ func ExportCSVHandler(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 }
+
+func ReceiptHandler(w http.ResponseWriter, r *http.Request) {
+	idStr := r.URL.Query().Get("id")
+	orderID, err := strconv.Atoi(idStr)
+	if err != nil || orderID <= 0 {
+		http.Error(w, "Invalid order ID", http.StatusBadRequest)
+		return
+	}
+	var o Order
+	err = db.QueryRow("SELECT id, customer_name, service_name, quantity, total_cost, status FROM orders WHERE id = ?", orderID).Scan(&o.ID, &o.CustomerName, &o.ServiceName, &o.Quantity, &o.TotalCost, &o.Status)
+	if err != nil {
+		http.Error(w, "Order receipt not found", http.StatusNotFound)
+		return
+	}
+	tmpl, err := template.ParseFiles("templates/receipt.html")
+	if err != nil {
+		http.Error(w, "Failed to load receipt template", http.StatusInternalServerError)
+		return
+	}
+	tmpl.Execute(w, o)
+}

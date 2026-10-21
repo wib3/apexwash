@@ -165,3 +165,36 @@ func TestExportCSVHandler(t *testing.T) {
 		t.Errorf("Expected Content-Type text/csv, got %s", contentType)
 	}
 }
+
+// Test 5: Verify ReceiptHandler returns 200 OK for valid order and 404 for missing order
+func TestReceiptHandler(t *testing.T) {
+	setupTestDB(t)
+	defer db.Close()
+
+	// Insert a dummy order into the in-memory test DB
+	_, err := db.Exec(
+		"INSERT INTO orders (customer_name, service_name, quantity, total_cost, status) VALUES (?, ?, ?, ?, ?)",
+		"Wealth Ibe", "Suit (Dry Clean)", 2, 5000, "Pending",
+	)
+	if err != nil {
+		t.Fatalf("Failed to insert test order: %v", err)
+	}
+
+	// Case A: Valid order ID (id=1) should return 200 OK
+	reqValid := httptest.NewRequest(http.MethodGet, "/receipt?id=1", nil)
+	recValid := httptest.NewRecorder()
+	ReceiptHandler(recValid, reqValid)
+
+	if recValid.Code != http.StatusOK {
+		t.Errorf("Expected 200 OK for valid receipt, got %d", recValid.Code)
+	}
+
+	// Case B: Non-existent order ID (id=999) should return 404 Not Found
+	reqMissing := httptest.NewRequest(http.MethodGet, "/receipt?id=999", nil)
+	recMissing := httptest.NewRecorder()
+	ReceiptHandler(recMissing, reqMissing)
+
+	if recMissing.Code != http.StatusNotFound {
+		t.Errorf("Expected 404 Not Found for missing receipt, got %d", recMissing.Code)
+	}
+}

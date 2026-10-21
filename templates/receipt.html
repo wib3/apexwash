@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Receipt #APX-{{ .ID }} | ApexWash</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f1f5f9;
+            color: #1e293b;
+            padding: 40px 20px;
+            margin: 0;
+        }
+        .receipt-card {
+            max-width: 480px;
+            margin: 0 auto;
+            background: #ffffff;
+            padding: 32px;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+            border-top: 6px solid #0f766e;
+        }
+        .header {
+            text-align: center;
+            border-bottom: 2px dashed #cbd5e1;
+            padding-bottom: 20px;
+            margin-bottom: 20px;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 1.5rem;
+            color: #0f766e;
+        }
+        .header p {
+            margin: 4px 0 0;
+            font-size: 0.85rem;
+            color: #64748b;
+        }
+        .row {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #f1f5f9;
+            font-size: 0.95rem;
+        }
+        .row strong {
+            color: #0f172a;
+        }
+        .total-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 16px 0;
+            margin-top: 12px;
+            border-top: 2px solid #1e293b;
+            font-size: 1.25rem;
+            font-weight: bold;
+            color: #0f766e;
+        }
+        .status-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 999px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            background: #e2e8f0;
+            color: #1e293b;
+        }
+        .actions {
+            margin-top: 28px;
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+        }
+        .btn {
+            padding: 10px 18px;
+            border-radius: 6px;
+            font-weight: bold;
+            font-size: 0.9rem;
+            text-decoration: none;
+            cursor: pointer;
+            border: none;
+        }
+        .btn-print {
+            background: #0f766e;
+            color: white;
+        }
+        .btn-back {
+            background: #e2e8f0;
+            color: #334155;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 24px;
+            font-size: 0.8rem;
+            color: #94a3b8;
+        }
+        /* Hide buttons when printing or saving as PDF! */
+        @media print {
+            body { background: white; padding: 0; }
+            .receipt-card { box-shadow: none; border: 1px solid #cbd5e1; }
+            .actions { display: none; }
+        }
+    </style>
+</head>
+<body>
+    <div class="receipt-card">
+        <div class="header">
+            <h1>ApexWash</h1>
+            <p>The Sntino Executive Care</p>
+            <p style="margin-top: 8px; font-weight: bold; color: #334155;">OFFICIAL DIGITAL RECEIPT</p>
+        </div>
+
+        <div class="row">
+            <span>Receipt No:</span>
+            <strong>#APX-{{ .ID }}</strong>
+        </div>
+        <div class="row">
+            <span>Customer Name:</span>
+            <strong>{{ .CustomerName }}</strong>
+        </div>
+        <div class="row">
+            <span>Service Type:</span>
+            <strong>{{ .ServiceName }}</strong>
+        </div>
+        <div class="row">
+            <span>Quantity:</span>
+            <strong>{{ .Quantity }} item(s)</strong>
+        </div>
+        <div class="row">
+            <span>Current Status:</span>
+            <span class="status-badge">{{ .Status }}</span>
+        </div>
+
+        <div class="total-row">
+            <span>Total Amount</span>
+            <span>₦{{ .TotalCost }}</span>
+        </div>
+
+        <div class="footer">
+            Thank you for trusting ApexWash with your garments!
+        </div>
+
+        <div class="actions">
+            <button onclick="window.print()" class="btn btn-print">🖨️ Print / Save PDF</button>
+            <a href="/" class="btn btn-back">&larr; Back to Dashboard</a>
+        </div>
+    </div>
+</body>
+</html>
