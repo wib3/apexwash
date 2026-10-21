@@ -19,6 +19,7 @@ func main() {
 	http.HandleFunc("/login", LoginHandler)
 	http.HandleFunc("/logout", LogoutHandler)
 	http.HandleFunc("/api/orders", APIorderHandler)
+	http.HandleFunc("/export-csv", ExportCSVHandler)
 
 	port := os.Getenv("PORT")
 	if port == "" {

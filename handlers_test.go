@@ -135,3 +135,33 @@ func TestBookAndAPIOrdersHandler(t *testing.T) {
 			orders[0].CustomerName, orders[0].TotalCost, expectedCost)
 	}
 }
+
+// Test 4: Verify CSV Export requires Staff Auth and returns text/csv
+func TestExportCSVHandler(t *testing.T) {
+	setupTestDB(t)
+	defer db.Close()
+
+	// Case A: Unauthenticated request should fail with 401
+	reqUnauth := httptest.NewRequest(http.MethodGet, "/export-csv", nil)
+	recUnauth := httptest.NewRecorder()
+	ExportCSVHandler(recUnauth, reqUnauth)
+
+	if recUnauth.Code != http.StatusUnauthorized {
+		t.Errorf("Expected 401 Unauthorized for CSV export without cookie, got %d", recUnauth.Code)
+	}
+
+	// Case B: Authenticated staff request should return 200 OK and text/csv
+	reqAuth := httptest.NewRequest(http.MethodGet, "/export-csv", nil)
+	reqAuth.AddCookie(&http.Cookie{Name: "staff_session", Value: "authenticated"})
+	recAuth := httptest.NewRecorder()
+	ExportCSVHandler(recAuth, reqAuth)
+
+	if recAuth.Code != http.StatusOK {
+		t.Fatalf("Expected 200 OK for authenticated CSV export, got %d", recAuth.Code)
+	}
+
+	contentType := recAuth.Header().Get("Content-Type")
+	if contentType != "text/csv" {
+		t.Errorf("Expected Content-Type text/csv, got %s", contentType)
+	}
+}

@@ -1,11 +1,12 @@
 package main
 
 import (
+	"encoding/csv"
 	"encoding/json"
 	"html/template"
 	"net/http"
-	"strconv"
 	"os"
+	"strconv"
 )
 
 func isStaff(r *http.Request) bool {
@@ -175,7 +176,7 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	expectedpassword := os.Getenv("STAFF_PASSWORD")
-	if expectedpassword == ""{
+	if expectedpassword == "" {
 		expectedpassword = "apexadmin"
 	}
 
@@ -226,4 +227,44 @@ func APIorderHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(orders)
+}
+
+func ExportCSVHandler(w http.ResponseWriter, r *http.Request) {
+	if !isStaff(r) {
+		http.Error(w, "Unauthorized: Staff login required to export data", http.StatusUnauthorized)
+		return
+	}
+	rows, err := db.Query("SELECT id, customer_name, service_name, quantity, total_cost, status FROM orders ORDER BY id DESC")
+	if err != nil {
+		http.Error(w, "Failed to query orders for export", http.StatusInternalServerError)
+		return
+	}
+	if err := rows.Err(); err != nil {
+		http.Error(w, "Error exporting orders: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+	defer rows.Close()
+
+	w.Header().Set("Content-Type", "text/csv")
+	w.Header().Set("Content-Disposition", `attachement; filename="apexwash_orders.csv"`)
+
+	writer := csv.NewWriter(w)
+	defer writer.Flush()
+
+	writer.Write([]string{"Order ID", "Customer Name", "Service", "Quantity", "Total Cost (NGN)", "Status"})
+
+	for rows.Next() {
+		var o Order
+		if err := rows.Scan(&o.ID, &o.CustomerName, &o.ServiceName, &o.Quantity, &o.TotalCost, &o.Status); err != nil {
+			continue
+		}
+		writer.Write([]string{
+			strconv.Itoa(o.ID),
+			o.CustomerName,
+			o.ServiceName,
+			strconv.Itoa(o.Quantity),
+			strconv.Itoa(o.TotalCost),
+			o.Status,
+		})
+	}
 }
