@@ -29,4 +29,17 @@ func InitDB() {
 	if err != nil {
 		log.Fatal("Failed to create table: ", err)
 	}
+	createUsersTable := `
+	CREATE TABLE IF NOT EXISTS users (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		full_name TEXT NOT NULL, 
+		email TEXT NOT NULL UNIQUE,
+		phone TEXT NOT NULL UNIQUE,
+		address TEXT NOT NULL,
+		password_hash TEXT NOT NULL
+	);`
+	_, err = db.Exec(createUsersTable)
+	if err != nil {
+		log.Fatal("Failed to creater users table: ", err)
+	}
 }

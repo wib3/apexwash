@@ -15,6 +15,7 @@ type PageData struct {
 	SearchQuery  string
 	StatusFilter string
 	IsStaff      bool
+	CurrentUser  *User
 }
 
 type Order struct {
@@ -24,6 +25,15 @@ type Order struct {
 	Quantity     int    `json:"quantity"`
 	TotalCost    int    `json:"total_cost"`
 	Status       string `json:"status"`
+}
+
+type User struct {
+	ID           int    `json:"id"`
+	FullName     string `json:"full_name"`
+	Email        string `json:"email"`
+	Phone        string `json:"phone"`
+	Address      string `json:"address"`
+	PasswordHash string `json:"-"`
 }
 
 var serviceList = []ServiceItem{
