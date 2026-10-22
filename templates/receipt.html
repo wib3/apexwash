@@ -1,17 +1,19 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
+
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Receipt #APX-{{ .ID }} | ApexWash</title>
     <style>
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
             background-color: #f1f5f9;
             color: #1e293b;
             padding: 40px 20px;
             margin: 0;
         }
+
         .receipt-card {
             max-width: 480px;
             margin: 0 auto;
@@ -21,22 +23,26 @@
             box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
             border-top: 6px solid #0f766e;
         }
+
         .header {
             text-align: center;
             border-bottom: 2px dashed #cbd5e1;
             padding-bottom: 20px;
             margin-bottom: 20px;
         }
+
         .header h1 {
             margin: 0;
             font-size: 1.5rem;
             color: #0f766e;
         }
+
         .header p {
             margin: 4px 0 0;
             font-size: 0.85rem;
             color: #64748b;
         }
+
         .row {
             display: flex;
             justify-content: space-between;
@@ -44,9 +50,11 @@
             border-bottom: 1px solid #f1f5f9;
             font-size: 0.95rem;
         }
+
         .row strong {
             color: #0f172a;
         }
+
         .total-row {
             display: flex;
             justify-content: space-between;
@@ -57,6 +65,7 @@
             font-weight: bold;
             color: #0f766e;
         }
+
         .status-badge {
             display: inline-block;
             padding: 4px 10px;
@@ -66,12 +75,14 @@
             background: #e2e8f0;
             color: #1e293b;
         }
+
         .actions {
             margin-top: 28px;
             display: flex;
             gap: 12px;
             justify-content: center;
         }
+
         .btn {
             padding: 10px 18px;
             border-radius: 6px;
@@ -81,34 +92,51 @@
             cursor: pointer;
             border: none;
         }
+
         .btn-print {
             background: #0f766e;
             color: white;
         }
+
         .btn-back {
             background: #e2e8f0;
             color: #334155;
         }
+
         .footer {
             text-align: center;
             margin-top: 24px;
             font-size: 0.8rem;
             color: #94a3b8;
         }
+
         /* Hide buttons when printing or saving as PDF! */
         @media print {
-            body { background: white; padding: 0; }
-            .receipt-card { box-shadow: none; border: 1px solid #cbd5e1; }
-            .actions { display: none; }
+            body {
+                background: white;
+                padding: 0;
+            }
+
+            .receipt-card {
+                box-shadow: none;
+                border: 1px solid #cbd5e1;
+            }
+
+            .actions {
+                display: none;
+            }
         }
     </style>
 </head>
+
 <body>
     <div class="receipt-card">
         <div class="header">
             <h1>ApexWash</h1>
             <p>The Sntino Executive Care</p>
-            <p style="margin-top: 8px; font-weight: bold; color: #334155;">OFFICIAL DIGITAL RECEIPT</p>
+            <p style="margin-top: 8px; font-weight: bold; color: #334155">
+                OFFICIAL DIGITAL RECEIPT
+            </p>
         </div>
 
         <div class="row">
@@ -142,10 +170,14 @@
         </div>
 
         <div class="actions">
-            <button onclick="window.print()" class="btn btn-print">🖨️ Print / Save PDF</button>
-            <a href="https://wa.me/?text=Hello%20{{.CustomerName}},%20your%20ApexWash%20Order%20%23APX-{{.ID}}%20({{.Quantity}}x%20{{.ServiceName}})%20for%20%E2%82%A6{{.TotalCost}}%20is%20currently:%20*{{.Status}}*.%20Thank%20you%20for%20choosing%20ApexWash!" target="_blank" class="btn" style="background: #25D366; color: white;">💬 Share on WhatsApp</a>
+            <button onclick="window.print()" class="btn btn-print">
+                🖨️ Print / Save PDF
+            </button>
+            <a href="https://wa.me/?text=Hello%20{{.CustomerName}},%20your%20ApexWash%20Order%20%23APX-{{.ID}}%20({{.Quantity}}x%20{{.ServiceName}})%20for%20%E2%82%A6{{.TotalCost}}%20is%20currently:%20*{{.Status}}*.%20Thank%20you%20for%20choosing%20ApexWash!"
+                target="_blank" class="btn" style="background: #25d366; color: white">💬 Share on WhatsApp</a>
             <a href="/" class="btn btn-back">&larr; Back to Dashboard</a>
         </div>
     </div>
 </body>
+
 </html>
