@@ -23,10 +23,10 @@ func BookHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	customer := r.FormValue("customer_name")
-	if currentUser := getLoggedInCustomer(r); currentUser != nil{
+	if currentUser := getLoggedInCustomer(r); currentUser != nil {
 		customer = currentUser.FullName
 	}
-	if customer == ""{
+	if customer == "" {
 		http.Error(w, "Customer name is required", 400)
 		return
 	}
@@ -316,12 +316,25 @@ func ReceiptHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid order ID", http.StatusBadRequest)
 		return
 	}
+
 	var o Order
-	err = db.QueryRow("SELECT id, customer_name, service_name, quantity, total_cost, status FROM orders WHERE id = ?", orderID).Scan(&o.ID, &o.CustomerName, &o.ServiceName, &o.Quantity, &o.TotalCost, &o.Status)
+	err = db.QueryRow(
+		"SELECT id, customer_name, service_name, quantity, total_cost, status FROM orders WHERE id = ?",
+		orderID,
+	).Scan(&o.ID, &o.CustomerName, &o.ServiceName, &o.Quantity, &o.TotalCost, &o.Status)
 	if err != nil {
 		http.Error(w, "Order receipt not found", http.StatusNotFound)
 		return
 	}
+
+	// Security Check: Only Staff or the Customer who owns the order can view the receipt
+	staff := isStaff(r)
+	currentUser := getLoggedInCustomer(r)
+	if !staff && (currentUser == nil || currentUser.FullName != o.CustomerName) {
+		http.Error(w, "Unauthorized: You can only view your own receipts", http.StatusForbidden)
+		return
+	}
+
 	tmpl, err := template.ParseFiles("templates/receipt.html")
 	if err != nil {
 		http.Error(w, "Failed to load receipt template", http.StatusInternalServerError)

@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -17,20 +18,33 @@ func setupTestDB(t *testing.T) {
 	var err error
 	db, err = sql.Open("sqlite", ":memory:")
 	if err != nil {
-		t.Fatalf("Failed to open in-memory database: %v", err)
+		t.Fatalf("Failed to open test database: %v", err)
 	}
 
-	createTableSQL := `CREATE TABLE IF NOT EXISTS orders (
+	// 1. Create the orders table for testing
+	_, err = db.Exec(`CREATE TABLE IF NOT EXISTS orders (
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
-		customer_name TEXT,
-		service_name TEXT,
-		quantity INTEGER,
-		total_cost INTEGER,
-		status TEXT
-	);`
+		customer_name TEXT NOT NULL,
+		service_name TEXT NOT NULL,
+		quantity INTEGER NOT NULL,
+		total_cost INTEGER NOT NULL,
+		status TEXT DEFAULT 'Pending'
+	)`)
+	if err != nil {
+		t.Fatalf("Failed to create orders table: %v", err)
+	}
 
-	if _, err := db.Exec(createTableSQL); err != nil {
-		t.Fatalf("Failed to create test table: %v", err)
+	// 2. Create the users table for testing
+	_, err = db.Exec(`CREATE TABLE IF NOT EXISTS users (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		full_name TEXT NOT NULL,
+		email TEXT UNIQUE NOT NULL,
+		phone TEXT UNIQUE NOT NULL,
+		address TEXT NOT NULL,
+		password_hash TEXT NOT NULL
+	)`)
+	if err != nil {
+		t.Fatalf("Failed to create users table: %v", err)
 	}
 }
 
@@ -169,32 +183,146 @@ func TestExportCSVHandler(t *testing.T) {
 // Test 5: Verify ReceiptHandler returns 200 OK for valid order and 404 for missing order
 func TestReceiptHandler(t *testing.T) {
 	setupTestDB(t)
-	defer db.Close()
 
-	// Insert a dummy order into the in-memory test DB
+	// Seed a sample order in the test database
 	_, err := db.Exec(
 		"INSERT INTO orders (customer_name, service_name, quantity, total_cost, status) VALUES (?, ?, ?, ?, ?)",
-		"Wealth Ibe", "Suit (Dry Clean)", 2, 5000, "Pending",
+		"Wealth Ibe", "Suit (2-Piece)", 2, 5000, "Ready for Pickup",
 	)
 	if err != nil {
 		t.Fatalf("Failed to insert test order: %v", err)
 	}
 
-	// Case A: Valid order ID (id=1) should return 200 OK
-	reqValid := httptest.NewRequest(http.MethodGet, "/receipt?id=1", nil)
-	recValid := httptest.NewRecorder()
-	ReceiptHandler(recValid, reqValid)
+	// 1. Test unauthenticated guest access -> should be blocked with 403 Forbidden
+	unauthReq := httptest.NewRequest(http.MethodGet, "/receipt?id=1", nil)
+	unauthRR := httptest.NewRecorder()
+	ReceiptHandler(unauthRR, unauthReq)
 
-	if recValid.Code != http.StatusOK {
-		t.Errorf("Expected 200 OK for valid receipt, got %d", recValid.Code)
+	if unauthRR.Code != http.StatusForbidden {
+		t.Errorf("Expected 403 Forbidden for unauthenticated receipt access, got %d", unauthRR.Code)
 	}
 
-	// Case B: Non-existent order ID (id=999) should return 404 Not Found
-	reqMissing := httptest.NewRequest(http.MethodGet, "/receipt?id=999", nil)
-	recMissing := httptest.NewRecorder()
-	ReceiptHandler(recMissing, reqMissing)
+	// 2. Test authorized access (with staff_session cookie) -> should return 200 OK
+	authReq := httptest.NewRequest(http.MethodGet, "/receipt?id=1", nil)
+	authReq.AddCookie(&http.Cookie{
+		Name:  "staff_session",
+		Value: "authenticated",
+	})
+	authRR := httptest.NewRecorder()
+	ReceiptHandler(authRR, authReq)
 
-	if recMissing.Code != http.StatusNotFound {
-		t.Errorf("Expected 404 Not Found for missing receipt, got %d", recMissing.Code)
+	if authRR.Code != http.StatusOK {
+		t.Errorf("Expected 200 OK for valid authorized receipt, got %d", authRR.Code)
+	}
+	if !strings.Contains(authRR.Body.String(), "Wealth Ibe") {
+		t.Errorf("Expected receipt body to contain customer name 'Wealth Ibe'")
+	}
+
+	// 3. Test non-existent order ID -> should return 404 Not Found
+	notFoundReq := httptest.NewRequest(http.MethodGet, "/receipt?id=999", nil)
+	notFoundReq.AddCookie(&http.Cookie{
+		Name:  "staff_session",
+		Value: "authenticated",
+	})
+	notFoundRR := httptest.NewRecorder()
+	ReceiptHandler(notFoundRR, notFoundReq)
+
+	if notFoundRR.Code != http.StatusNotFound {
+		t.Errorf("Expected 404 Not Found for missing order receipt, got %d", notFoundRR.Code)
+	}
+}
+func TestCustomerSignupAndLogin(t *testing.T) {
+	setupTestDB(t)
+
+	// 1. Test Customer Signup
+	signupData := url.Values{}
+	signupData.Set("full_name", "Bilyamin Umar")
+	signupData.Set("email", "bilyamin@example.com")
+	signupData.Set("phone", "08031234567")
+	signupData.Set("address", "14 Ahmadu Bello Way")
+	signupData.Set("password", "superSecretWash123")
+
+	req := httptest.NewRequest(http.MethodPost, "/signup", strings.NewReader(signupData.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	rr := httptest.NewRecorder()
+
+	SignupHandler(rr, req)
+
+	if rr.Code != http.StatusSeeOther {
+		t.Fatalf("Expected signup redirect 303, got %d", rr.Code)
+	}
+
+	// Verify password was hashed with bcrypt in SQLite (never stored as plain text)
+	var storedHash string
+	err := db.QueryRow("SELECT password_hash FROM users WHERE phone = ?", "08031234567").Scan(&storedHash)
+	if err != nil {
+		t.Fatalf("Failed to query newly created user: %v", err)
+	}
+	if storedHash == "superSecretWash123" || !strings.HasPrefix(storedHash, "$2a$") {
+		t.Errorf("Expected bcrypt hash starting with $2a$, got %s", storedHash)
+	}
+
+	// 2. Test Customer Login with Phone Number + Password
+	loginData := url.Values{}
+	loginData.Set("identifier", "08031234567")
+	loginData.Set("password", "superSecretWash123")
+
+	loginReq := httptest.NewRequest(http.MethodPost, "/login-customer", strings.NewReader(loginData.Encode()))
+	loginReq.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	loginRR := httptest.NewRecorder()
+
+	CustomerLoginHandler(loginRR, loginReq)
+
+	if loginRR.Code != http.StatusSeeOther {
+		t.Fatalf("Expected login redirect 303, got %d", loginRR.Code)
+	}
+
+	// Verify customer_session cookie was issued
+	foundCookie := false
+	for _, c := range loginRR.Result().Cookies() {
+		if c.Name == "customer_session" && c.Value != "" {
+			foundCookie = true
+		}
+	}
+	if !foundCookie {
+		t.Errorf("Expected customer_session cookie to be set upon login")
+	}
+}
+
+func TestCustomerOrderPrivacy(t *testing.T) {
+	setupTestDB(t)
+
+	// Create Customer 1 (Wealth Ibe)
+	res, err := db.Exec(
+		"INSERT INTO users (full_name, email, phone, address, password_hash) VALUES (?, ?, ?, ?, ?)",
+		"Wealth Ibe", "wealth@example.com", "08011111111", "Otukpo", "hash1",
+	)
+	if err != nil {
+		t.Fatalf("Failed to insert test user: %v", err)
+	}
+	wealthID, _ := res.LastInsertId()
+
+	// Seed two orders: one for Wealth Ibe, one for another customer (Chinedu Okafor)
+	_, _ = db.Exec("INSERT INTO orders (customer_name, service_name, quantity, total_cost, status) VALUES (?, ?, ?, ?, ?)",
+		"Wealth Ibe", "Suit (2-Piece)", 1, 2500, "Pending")
+	_, _ = db.Exec("INSERT INTO orders (customer_name, service_name, quantity, total_cost, status) VALUES (?, ?, ?, ?, ?)",
+		"Chinedu Okafor", "Agbada / Senator", 2, 4000, "Pending")
+
+	// Request HomeHandler logged in as Wealth Ibe
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req.AddCookie(&http.Cookie{
+		Name:  "customer_session",
+		Value: strconv.FormatInt(wealthID, 10),
+	})
+	rr := httptest.NewRecorder()
+
+	HomeHandler(rr, req)
+
+	body := rr.Body.String()
+	if !strings.Contains(body, "Wealth Ibe") {
+		t.Errorf("Expected logged-in customer to see their own order")
+	}
+	if strings.Contains(body, "Chinedu Okafor") {
+		t.Errorf("Privacy violation: Customer 'Wealth Ibe' should NOT see 'Chinedu Okafor's order")
 	}
 }
