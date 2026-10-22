@@ -1,30 +1,105 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ .ShopName }}</title>
     <link rel="stylesheet" href="static/style.css">
 </head>
+
 <body>
     <h1>{{ .ShopName }} - The Sntino Executive Care</h1>
 
     <p class="tagline">{{ .Tagline }}</p>
     <div>
         {{ if .IsStaff }}
-            <span style="color: #166534; font-weight: bold; font-size: 0.9rem;">🔓 Staff Mode Active</span>
-            <a href="/export-csv" style="text-decoration: none; padding: 6px 12px; background: #10b981; color: white; border-radius: 6px; font-size: 0.85rem; font-weight: bold;">📥 Download CSV Report</a>
-            <form action="/logout" method="post" style="margin: 0;">
-                <button type="submit" style="background: #64748b; padding: 6px 12px; font-size: 0.85rem;">Logout</button>
-            </form>
+        <span style="color: #166534; font-weight: bold; font-size: 0.9rem;">🔓 Staff Mode Active</span>
+        <a href="/export-csv"
+            style="text-decoration: none; padding: 6px 12px; background: #10b981; color: white; border-radius: 6px; font-size: 0.85rem; font-weight: bold;">📥
+            Download CSV Report</a>
+        <form action="/logout" method="post" style="margin: 0;">
+            <button type="submit" style="background: #64748b; padding: 6px 12px; font-size: 0.85rem;">Logout</button>
+        </form>
         {{ else }}
-            <span style="color: #475569; font-size: 0.9rem;">🔒 Customer View (Staff Login Required to Manage Orders)</span>
-            <form action="/login" method="POST" style="display: flex; gap: 8px; margin: 0;">
-                <input type="password" name="password" placeholder="Staff password..." required style="padding: 6px 10px; border: 1px solid #cbd5e1; border-radius: 6px;">
-                <button type="submit" style="padding: 6px 12px; font-size: 0.85rem;">Staff Login</button>
-            </form>
+        <span style="color: #475569; font-size: 0.9rem;">🔒 Customer View (Staff Login Required to Manage Orders)</span>
+        <form action="/login" method="POST" style="display: flex; gap: 8px; margin: 0;">
+            <input type="password" name="password" placeholder="Staff password..." required
+                style="padding: 6px 10px; border: 1px solid #cbd5e1; border-radius: 6px;">
+            <button type="submit" style="padding: 6px 12px; font-size: 0.85rem;">Staff Login</button>
+        </form>
         {{ end }}
     </div>
+    {{if not .IsStaff}}
+    <section class="customer-auth-section" style="margin: 20px 0;">
+        {{if .CurrentUser}}
+        <div class="card"
+            style="display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px;">
+            <div>
+                <h3 style="margin: 0; color: #166534;">👤 Welcome, {{.CurrentUser.FullName}}</h3>
+                <small style="color: #15803d;">📍 Delivery Address: {{.CurrentUser.Address}} | 📞
+                    {{.CurrentUser.Phone}}</small>
+            </div>
+            <form action="/logout-customer" method="POST" style="margin: 0;">
+                <button type="submit"
+                    style="background: #dc2626; color: white; border: none; padding: 8px 14px; border-radius: 5px; cursor: pointer;">Logout</button>
+            </form>
+        </div>
+        {{else}}
+        <div style="display: flex; gap: 20px; flex-wrap: wrap;">
+            <!-- Customer Login Card -->
+            <div class="card"
+                style="flex: 1; min-width: 280px; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px;">
+                <h3 style="margin-top: 0;">🔑 Customer Login</h3>
+                <form action="/login-customer" method="POST">
+                    <div style="margin-bottom: 12px;">
+                        <label style="display: block; margin-bottom: 4px;">Phone or Email:</label>
+                        <input type="text" name="identifier" placeholder="0803... or email@example.com" required
+                            style="width: 100%; padding: 8px; box-sizing: border-box;">
+                    </div>
+                    <div style="margin-bottom: 12px;">
+                        <label style="display: block; margin-bottom: 4px;">Password:</label>
+                        <input type="password" name="password" required
+                            style="width: 100%; padding: 8px; box-sizing: border-box;">
+                    </div>
+                    <button type="submit" style="width: 100%; padding: 10px; cursor: pointer;">Login to My
+                        Account</button>
+                </form>
+            </div>
+
+            <!-- Customer Signup Card -->
+            <div class="card"
+                style="flex: 1; min-width: 280px; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px;">
+                <h3 style="margin-top: 0;">✨ Create Customer Account</h3>
+                <form action="/signup" method="POST">
+                    <div style="margin-bottom: 8px;">
+                        <input type="text" name="full_name" placeholder="Full Name (e.g. Wealth Ibe)" required
+                            style="width: 100%; padding: 8px; box-sizing: border-box;">
+                    </div>
+                    <div style="margin-bottom: 8px;">
+                        <input type="email" name="email" placeholder="Email Address" required
+                            style="width: 100%; padding: 8px; box-sizing: border-box;">
+                    </div>
+                    <div style="margin-bottom: 8px;">
+                        <input type="text" name="phone" placeholder="Phone Number (WhatsApp)" required
+                            style="width: 100%; padding: 8px; box-sizing: border-box;">
+                    </div>
+                    <div style="margin-bottom: 8px;">
+                        <input type="text" name="address" placeholder="Delivery Street Address" required
+                            style="width: 100%; padding: 8px; box-sizing: border-box;">
+                    </div>
+                    <div style="margin-bottom: 12px;">
+                        <input type="password" name="password" placeholder="Create Password" required
+                            style="width: 100%; padding: 8px; box-sizing: border-box;">
+                    </div>
+                    <button type="submit" style="width: 100%; padding: 10px; cursor: pointer;">Sign Up & Track
+                        Orders</button>
+                </form>
+            </div>
+        </div>
+        {{end}}
+    </section>
+    {{end}}
     <div style="display: flex; gap: 20px; margin-bottom: 24px;">
         <div style="flex: 1; background: #1e293b; color: white; padding: 16px; border-radius: 8px; text-align: center;">
             <div style="font-size: 0.85rem; color: #94a3b8; text-transform: uppercase;">Active Orders</div>
@@ -38,23 +113,26 @@
     <h2>Our Prices</h2>
     <ul>
         {{range .Services}}
-            <li>{{.Name}} costs ₦{{.Price}}</li>
+        <li>{{.Name}} costs ₦{{.Price}}</li>
         {{end}}
     </ul>
     <h2>Book a Pickup</h2>
     <form action="/book" method="post">
         <div>
             <label>Your Name:</label>
-            <input type="text" name="customer_name" required>
-
+            {{if .CurrentUser}}
+                <input type="text" name="customer_name" value="{{.CurrentUser.FullName}}" readonly style="background-color: #f1f5f9; cursor: not-allowed;" >
+            {{else}}
+                <input type="text" name="customer_name" required>
+            {{end}}
         </div>
 
         <div>
             <label>Select Service:</label>
             <select name="service_name">
                 {{range .Services}}
-                    <option value="{{.Name}}">{{ .Name}} - ₦{{.Price}}</option>
-                    {{end}}
+                <option value="{{.Name}}">{{ .Name}} - ₦{{.Price}}</option>
+                {{end}}
             </select>
         </div>
 
@@ -64,52 +142,65 @@
         </div>
         <button type="submit">Submit Order</button>
     </form>
-        <h2>Active Laundry Orders</h2>
-        <div style="margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
-            <form action="/" method="get" style="display: flex; gap: 8px; margin: 0;">
-                <input type="text" name="search" placeholder="Search customer name..." value="{{ .SearchQuery }}" style="padding: 8px; border: 1px solid #cbd5e1; border-radius: 6px;">
-                <button type="submit">Search</button>
-                {{ if or .SearchQuery .StatusFilter }}
-                    <a href="/" style="padding: 8px 12px; background: #64748b; color: white; text-decoration: none; border-radius: 6px; font-size: 0.9rem;">Clear</a>
-                {{end}}
-            </form>
-
-            <div style="display: flex; gap: 6px; flex-wrap: wrap;">
-                <a href="/" style="padding: 6px 12px; border-radius: 6px; text-decoration: none; background: #e2e8f0; color: #1e293b; font-size: 0.85rem; font-weight: bold;">All</a>
-                <a href="/?status=Pending" style="padding: 6px 12px; border-radius: 6px; text-decoration: none; background: #fef3c7; color: #92400e; font-size: 0.85rem; font-weight: bold;">Pending</a>
-                <a href="/?status=Washing+%26+Ironing" style="padding: 6px 12px; border-radius: 6px; text-decoration: none; background: #dbeafe; color: #1e40af; font-size: 0.85rem; font-weight: bold;">Washing &amp; Ironing</a>
-                <a href="/?status=Ready+for+Pickup" style="padding: 6px 12px; border-radius: 6px; text-decoration: none; background: #dcfce7; color: #166534; font-size: 0.85rem; font-weight: bold;">Ready for Pickup</a>
-            </div>
-        </div>
-        <ul>
-            {{range .Orders}}
-                <li>
-                    <span>
-                        <strong>#{{.ID}} {{.CustomerName}}</strong> - {{.ServiceName}} (Qty: {{.Quantity}} | Total: ₦{{.TotalCost}} | Status: <em>{{.Status}}</em>)
-                        <a href="/receipt?id={{.ID}}" style="margin-left: 8px; padding: 4px 10px; background: #e0f2fe; color: #0369a1; text-decoration: none; border-radius: 4px; font-size: 0.8rem; font-weight: bold;">🧾 Receipt</a>
-                    </span>
-                    {{ if $.IsStaff }}
-                    <div style="display: flex; gap: 8px; align-items: center;">
-                        {{ if ne .Status "Ready for Pickup" }}
-                        <form action="/update-status" method="post" style="margin: 0;">
-                            <input type="hidden" name="order_id" value="{{.ID}}">
-                            <input type="hidden" name="current_status" value="{{ .Status }}">
-                            <button type="submit">Next Stage &rarr;</button>
-                        </form>
-                        {{ end }}
-
-
-                        <form action="/delete-order" method="post" style="margin: 0;">
-                            <input type="hidden" name="order_id" value="{{.ID}}">
-                            <button type="submit" style="background-color: #dc2626;">Picked Up &#10003;</button>
-                        </form>
-                    </div>
-                    {{ end }}
-                </li>
-            {{else}}
-                <li>No active orders right now</li>
+    <h2>Active Laundry Orders</h2>
+    <div
+        style="margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+        <form action="/" method="get" style="display: flex; gap: 8px; margin: 0;">
+            <input type="text" name="search" placeholder="Search customer name..." value="{{ .SearchQuery }}"
+                style="padding: 8px; border: 1px solid #cbd5e1; border-radius: 6px;">
+            <button type="submit">Search</button>
+            {{ if or .SearchQuery .StatusFilter }}
+            <a href="/"
+                style="padding: 8px 12px; background: #64748b; color: white; text-decoration: none; border-radius: 6px; font-size: 0.9rem;">Clear</a>
             {{end}}
-        </ul>
-   
+        </form>
+
+        <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+            <a href="/"
+                style="padding: 6px 12px; border-radius: 6px; text-decoration: none; background: #e2e8f0; color: #1e293b; font-size: 0.85rem; font-weight: bold;">All</a>
+            <a href="/?status=Pending"
+                style="padding: 6px 12px; border-radius: 6px; text-decoration: none; background: #fef3c7; color: #92400e; font-size: 0.85rem; font-weight: bold;">Pending</a>
+            <a href="/?status=Washing+%26+Ironing"
+                style="padding: 6px 12px; border-radius: 6px; text-decoration: none; background: #dbeafe; color: #1e40af; font-size: 0.85rem; font-weight: bold;">Washing
+                &amp; Ironing</a>
+            <a href="/?status=Ready+for+Pickup"
+                style="padding: 6px 12px; border-radius: 6px; text-decoration: none; background: #dcfce7; color: #166534; font-size: 0.85rem; font-weight: bold;">Ready
+                for Pickup</a>
+        </div>
+    </div>
+    <ul>
+        {{range .Orders}}
+        <li>
+            <span>
+                <strong>#{{.ID}} {{.CustomerName}}</strong> - {{.ServiceName}} (Qty: {{.Quantity}} | Total:
+                ₦{{.TotalCost}} | Status: <em>{{.Status}}</em>)
+                <a href="/receipt?id={{.ID}}"
+                    style="margin-left: 8px; padding: 4px 10px; background: #e0f2fe; color: #0369a1; text-decoration: none; border-radius: 4px; font-size: 0.8rem; font-weight: bold;">🧾
+                    Receipt</a>
+            </span>
+            {{ if $.IsStaff }}
+            <div style="display: flex; gap: 8px; align-items: center;">
+                {{ if ne .Status "Ready for Pickup" }}
+                <form action="/update-status" method="post" style="margin: 0;">
+                    <input type="hidden" name="order_id" value="{{.ID}}">
+                    <input type="hidden" name="current_status" value="{{ .Status }}">
+                    <button type="submit">Next Stage &rarr;</button>
+                </form>
+                {{ end }}
+
+
+                <form action="/delete-order" method="post" style="margin: 0;">
+                    <input type="hidden" name="order_id" value="{{.ID}}">
+                    <button type="submit" style="background-color: #dc2626;">Picked Up &#10003;</button>
+                </form>
+            </div>
+            {{ end }}
+        </li>
+        {{else}}
+        <li>No active orders right now</li>
+        {{end}}
+    </ul>
+
 </body>
+
 </html>
