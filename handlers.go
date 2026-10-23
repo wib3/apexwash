@@ -389,6 +389,12 @@ func SignupHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "All fields are required", http.StatusBadRequest)
 		return
 	}
+	cleanPhone, valid := normalizeAndValidatePhone(phone)
+	if !valid {
+		http.Error(w, "Invalid Nigerian phone number (e.g. 08031234567)", http.StatusBadRequest)
+		return
+	}
+	phone = cleanPhone
 
 	hashedBytes, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
@@ -456,6 +462,9 @@ func CustomerLoginHandler(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 		return
 	}
+	if normalizedPhone, ok := normalizeAndValidatePhone(identifier); ok {
+		identifier = normalizedPhone
+	}
 
 	// 2. Regular Customer Check (SQLite users table + bcrypt)
 	var userID int
@@ -502,4 +511,38 @@ func CustomerLogoutHandler(w http.ResponseWriter, r *http.Request) {
 	})
 
 	http.Redirect(w, r, "/", http.StatusSeeOther)
+}
+
+// normalizeAndValidatePhone cleans a Nigerian phone number to a standard 11-digit
+// format (e.g. "08031234567") and validates its length, digits, and network prefix.
+func normalizeAndValidatePhone(raw string) (string, bool) {
+	cleaned := strings.TrimSpace(raw)
+	cleaned = strings.ReplaceAll(cleaned, " ", "")
+	cleaned = strings.ReplaceAll(cleaned, "-", "")
+
+	if strings.HasPrefix(cleaned, "+234") {
+		cleaned = "0" + strings.TrimPrefix(cleaned, "+234")
+	} else if strings.HasPrefix(cleaned, "234") && len(cleaned) == 13 {
+		cleaned = "0" + strings.TrimPrefix(cleaned, "234")
+	}
+
+	if len(cleaned) != 11 {
+		return "", false
+	}
+
+	for _, ch := range cleaned {
+		if ch < '0' || ch > '9' {
+			return "", false
+		}
+	}
+
+	validPrefixes := []string{"070", "071", "080", "081", "090", "091"}
+	prefix := cleaned[:3]
+	for _, vp := range validPrefixes {
+		if prefix == vp {
+			return cleaned, true
+		}
+	}
+
+	return "", false
 }

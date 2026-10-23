@@ -373,3 +373,38 @@ func TestUnifiedAdminLogin(t *testing.T) {
 		t.Error("Expected existing customer_session cookie to be cleared (MaxAge < 0)")
 	}
 }
+
+func TestPhoneValidation(t *testing.T) {
+	// 1. Test valid international format with spaces and dashes
+	clean, ok := normalizeAndValidatePhone("+234 803-123-4567")
+	if !ok || clean != "08031234567" {
+		t.Errorf("Expected '+234 803-123-4567' to normalize to '08031234567', got '%s' (ok=%v)", clean, ok)
+	}
+
+	// 2. Test invalid network prefix (060 does not exist in Nigeria)
+	_, ok = normalizeAndValidatePhone("06012345678")
+	if ok {
+		t.Error("Expected invalid prefix '06012345678' to be rejected")
+	}
+
+	// 3. Test SignupHandler rejects bad phone number with 400 Bad Request
+	setupTestDB(t)
+	defer db.Close()
+
+	form := url.Values{}
+	form.Add("full_name", "Bad Phone User")
+	form.Add("email", "badphone@example.com")
+	form.Add("phone", "12345")
+	form.Add("address", "10 Test Street")
+	form.Add("password", "secret123")
+
+	req := httptest.NewRequest(http.MethodPost, "/signup", strings.NewReader(form.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+	rr := httptest.NewRecorder()
+	SignupHandler(rr, req)
+
+	if rr.Code != http.StatusBadRequest {
+		t.Errorf("Expected 400 Bad Request for invalid phone number, got %d", rr.Code)
+	}
+}
