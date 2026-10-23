@@ -1,13 +1,13 @@
 package main
 
 import (
-	"database/sql"
 	"encoding/csv"
 	"encoding/json"
 	"html/template"
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 
 	"golang.org/x/crypto/bcrypt"
 )
@@ -362,67 +362,120 @@ func getLoggedInCustomer(r *http.Request) *User {
 
 // SignupHandler registers a new customer account with a bcrypt-hashed password
 func SignupHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Redirect(w, r, "/", http.StatusSeeOther)
+	// 1. If GET request, render the dedicated Signup page
+	if r.Method == http.MethodGet {
+		tmpl, err := template.ParseFiles("templates/signup.html")
+		if err != nil {
+			http.Error(w, "Failed to load signup page", http.StatusInternalServerError)
+			return
+		}
+		tmpl.Execute(w, nil)
 		return
 	}
-	fullName := r.FormValue("full_name")
-	email := r.FormValue("email")
-	phone := r.FormValue("phone")
-	address := r.FormValue("address")
+
+	// 2. Only allow POST for form submission
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	fullName := strings.TrimSpace(r.FormValue("full_name"))
+	email := strings.TrimSpace(r.FormValue("email"))
+	phone := strings.TrimSpace(r.FormValue("phone"))
+	address := strings.TrimSpace(r.FormValue("address"))
 	password := r.FormValue("password")
 
 	if fullName == "" || email == "" || phone == "" || address == "" || password == "" {
-		http.Error(w, "All fields are required to create an account", http.StatusBadRequest)
-		return
-	}
-	// Hash the password using bcrypt
-	hashedBytes, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
-	if err != nil {
-		http.Error(w, "Invalid phone/email or password", http.StatusUnauthorized)
+		http.Error(w, "All fields are required", http.StatusBadRequest)
 		return
 	}
 
-	// Insert new customer into SQLite
-	res, err := db.Exec("INSERT INTO users (full_name, email, phone, address, password_hash) VALUES (?, ?, ?, ?, ?)", fullName, email, phone, address, string(hashedBytes))
+	hashedBytes, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		http.Error(w, "Server error encrypting password", http.StatusInternalServerError)
+		return
+	}
+
+	res, err := db.Exec(
+		"INSERT INTO users (full_name, email, phone, address, password_hash) VALUES (?, ?, ?, ?, ?)",
+		fullName, email, phone, address, string(hashedBytes),
+	)
 	if err != nil {
 		http.Error(w, "Email or phone number is already registered", http.StatusConflict)
 		return
 	}
-	newUserID, _ := res.LastInsertId()
+
+	userID, _ := res.LastInsertId()
 
 	http.SetCookie(w, &http.Cookie{
 		Name:     "customer_session",
-		Value:    strconv.FormatInt(newUserID, 10),
+		Value:    strconv.FormatInt(userID, 10),
 		Path:     "/",
 		HttpOnly: true,
 	})
+
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
 // CustomerLoginHandler authenticates a customer by phone or email + password
 func CustomerLoginHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	identifier := strings.TrimSpace(r.FormValue("identifier"))
+	password := r.FormValue("password")
+
+	// 1. Unified Admin Check (Option B: Environment Variables)
+	adminEmail := os.Getenv("ADMIN_EMAIL")
+	if adminEmail == "" {
+		adminEmail = "admin@apexwash.com"
+	}
+	staffPassword := os.Getenv("STAFF_PASSWORD")
+	if staffPassword == "" {
+		staffPassword = "admin123"
+	}
+
+	if strings.EqualFold(identifier, adminEmail) && password == staffPassword {
+		// Clear any existing customer session so roles don't mix
+		http.SetCookie(w, &http.Cookie{
+			Name:     "customer_session",
+			Value:    "",
+			Path:     "/",
+			MaxAge:   -1,
+			HttpOnly: true,
+		})
+		// Issue the staff session cookie
+		http.SetCookie(w, &http.Cookie{
+			Name:     "staff_session",
+			Value:    "authenticated",
+			Path:     "/",
+			HttpOnly: true,
+		})
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 		return
 	}
-	identifier := r.FormValue("identifier")
-	password := r.FormValue("password")
 
+	// 2. Regular Customer Check (SQLite users table + bcrypt)
 	var userID int
-	var storedHash string
+	var passwordHash string
+	err := db.QueryRow(
+		"SELECT id, password_hash FROM users WHERE email = ? OR phone = ?",
+		identifier, identifier,
+	).Scan(&userID, &passwordHash)
 
-	err := db.QueryRow("SELECT id, password_hash FROM users WHERE phone = ? OR email = ?", identifier, identifier).Scan(&userID, &storedHash)
-	if err == sql.ErrNoRows || err != nil {
-		http.Error(w, "Invalid phone/email or password", http.StatusUnauthorized)
+	if err != nil {
+		http.Error(w, "Invalid email/phone or password", http.StatusUnauthorized)
 		return
 	}
-	// Compare the provided password against the stored bcrypt hash
-	if err := bcrypt.CompareHashAndPassword([]byte(storedHash), []byte(password)); err != nil {
-		http.Error(w, "Invalid phone/email or password", http.StatusUnauthorized)
+
+	err = bcrypt.CompareHashAndPassword([]byte(passwordHash), []byte(password))
+	if err != nil {
+		http.Error(w, "Invalid email/phone or password", http.StatusUnauthorized)
 		return
 	}
-	// Valid credentials: set the customer_session cookie
+
 	http.SetCookie(w, &http.Cookie{
 		Name:     "customer_session",
 		Value:    strconv.Itoa(userID),
