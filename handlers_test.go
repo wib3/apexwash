@@ -452,3 +452,35 @@ func TestSameNameOrderIsolation(t *testing.T) {
 		t.Errorf("Expected 403 Forbidden when a different 'John Doe' (ID 2) accesses Order #1, got %d", receiptRR.Code)
 	}
 }
+
+func TestWhatsAppURLGeneration(t *testing.T) {
+	// 1. Order with registered Nigerian phone number & "Ready for Pickup" status
+	readyOrder := Order{
+		ID:            7,
+		CustomerName:  "Wealth",
+		CustomerPhone: "08031234567",
+		ServiceName:   "Wash & Fold",
+		Quantity:      3,
+		TotalCost:     4500,
+		Status:        "Ready for Pickup",
+	}
+
+	waURL := readyOrder.WhatsAppURL()
+	if !strings.HasPrefix(waURL, "https://wa.me/2348031234567?text=") {
+		t.Errorf("Expected WhatsApp URL to start with https://wa.me/2348031234567?text=, got %s", waURL)
+	}
+	if !strings.Contains(waURL, "READY+for+pickup") {
+		t.Errorf("Expected Ready message in URL, got %s", waURL)
+	}
+
+	// 2. Guest walk-in order with no phone number should return empty string
+	guestOrder := Order{
+		ID:            8,
+		CustomerName:  "Walk-in Guest",
+		CustomerPhone: "",
+		Status:        "Pending",
+	}
+	if guestOrder.WhatsAppURL() != "" {
+		t.Errorf("Expected empty WhatsAppURL for guest without phone, got %s", guestOrder.WhatsAppURL())
+	}
+}

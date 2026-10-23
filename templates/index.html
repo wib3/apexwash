@@ -156,6 +156,13 @@
             </span>
             {{ if $.IsStaff }}
             <div style="display: flex; gap: 8px; align-items: center;">
+                {{ if .WhatsAppURL }}
+                <a href="{{.WhatsAppURL}}" target="_blank" rel="noopener noreferrer"
+                    style="padding: 6px 12px; background-color: #16a34a; color: white; text-decoration: none; border-radius: 4px; font-size: 0.85rem; font-weight: bold;">
+                    💬 Notify
+                </a>
+                {{ end }}
+
                 {{ if ne .Status "Ready for Pickup" }}
                 <form action="/update-status" method="post" style="margin: 0;">
                     <input type="hidden" name="order_id" value="{{.ID}}">
@@ -163,7 +170,6 @@
                     <button type="submit">Next Stage &rarr;</button>
                 </form>
                 {{ end }}
-
 
                 <form action="/delete-order" method="post" style="margin: 0;">
                     <input type="hidden" name="order_id" value="{{.ID}}">
