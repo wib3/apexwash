@@ -19,12 +19,14 @@ type PageData struct {
 }
 
 type Order struct {
-	ID           int    `json:"id"`
-	CustomerName string `json:"customer_name"`
-	ServiceName  string `json:"service_name"`
-	Quantity     int    `json:"quantity"`
-	TotalCost    int    `json:"total_cost"`
-	Status       string `json:"status"`
+	ID            int    `json:"id"`
+	UserID        int    `json:"user_id"`
+	CustomerName  string `json:"customer_name"`
+	CustomerPhone string `json:"customer_phone,omitempty"`
+	ServiceName   string `json:"service_name"`
+	Quantity      int    `json:"quantity"`
+	TotalCost     int    `json:"total_cost"`
+	Status        string `json:"status"`
 }
 
 type User struct {

@@ -24,6 +24,7 @@ func setupTestDB(t *testing.T) {
 	// 1. Create the orders table for testing
 	_, err = db.Exec(`CREATE TABLE IF NOT EXISTS orders (
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		user_id INTEGER DEFAULT 0,
 		customer_name TEXT NOT NULL,
 		service_name TEXT NOT NULL,
 		quantity INTEGER NOT NULL,
@@ -406,5 +407,48 @@ func TestPhoneValidation(t *testing.T) {
 
 	if rr.Code != http.StatusBadRequest {
 		t.Errorf("Expected 400 Bad Request for invalid phone number, got %d", rr.Code)
+	}
+}
+
+func TestSameNameOrderIsolation(t *testing.T) {
+	setupTestDB(t)
+	defer db.Close()
+
+	// 1. Insert two distinct accounts with the exact same Full Name ("John Doe")
+	_, err := db.Exec(`
+		INSERT INTO users (id, full_name, email, phone, address, password_hash)
+		VALUES 
+			(1, 'John Doe', 'john1@example.com', '08031111111', '1 First St', 'hash1'),
+			(2, 'John Doe', 'john2@example.com', '08032222222', '2 Second St', 'hash2')
+	`)
+	if err != nil {
+		t.Fatalf("Failed to seed duplicate-name users: %v", err)
+	}
+
+	// 2. Customer #1 ("John Doe", ID 1) books an order
+	form := url.Values{}
+	form.Add("service_name", "Wash & Fold")
+	form.Add("quantity", "3")
+
+	bookReq := httptest.NewRequest(http.MethodPost, "/book", strings.NewReader(form.Encode()))
+	bookReq.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	bookReq.AddCookie(&http.Cookie{Name: "customer_session", Value: "1"})
+
+	bookRR := httptest.NewRecorder()
+	BookHandler(bookRR, bookReq)
+
+	if bookRR.Code != http.StatusSeeOther {
+		t.Fatalf("Expected 303 SeeOther on booking, got %d", bookRR.Code)
+	}
+
+	// 3. Customer #2 (also named "John Doe", ID 2) tries to view Order #1's receipt
+	receiptReq := httptest.NewRequest(http.MethodGet, "/receipt?id=1", nil)
+	receiptReq.AddCookie(&http.Cookie{Name: "customer_session", Value: "2"})
+
+	receiptRR := httptest.NewRecorder()
+	ReceiptHandler(receiptRR, receiptReq)
+
+	if receiptRR.Code != http.StatusForbidden {
+		t.Errorf("Expected 403 Forbidden when a different 'John Doe' (ID 2) accesses Order #1, got %d", receiptRR.Code)
 	}
 }

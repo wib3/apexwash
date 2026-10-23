@@ -23,8 +23,10 @@ func BookHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	customer := r.FormValue("customer_name")
+	userID := 0
 	if currentUser := getLoggedInCustomer(r); currentUser != nil {
 		customer = currentUser.FullName
+		userID = currentUser.ID
 	}
 	if customer == "" {
 		http.Error(w, "Customer name is required", 400)
@@ -49,8 +51,8 @@ func BookHandler(w http.ResponseWriter, r *http.Request) {
 
 	totalCost := qty * unitprice
 
-	insertSQL := `INSERT INTO orders (customer_name, service_name, quantity, total_cost, status) VALUES(?, ?, ?, ?, ?)`
-	_, err = db.Exec(insertSQL, customer, service, qty, totalCost, "Pending")
+	insertSQL := `INSERT INTO orders (user_id, customer_name, service_name, quantity, total_cost, status) VALUES(?, ?, ?, ?, ?, ?)`
+	_, err = db.Exec(insertSQL, userID, customer, service, qty, totalCost, "Pending")
 	if err != nil {
 		http.Error(w, "Failed to save order", http.StatusInternalServerError)
 		return
@@ -79,29 +81,34 @@ func HomeHandler(w http.ResponseWriter, r *http.Request) {
 	totalRevenue := 0
 
 	// Only query orders if the visitor is Staff OR a logged-in Customer
+	// Only query orders if the visitor is Staff OR a logged-in Customer
 	if staff || currentUser != nil {
-		query := "SELECT id, customer_name, service_name, quantity, total_cost, status FROM orders WHERE 1=1"
+		query := `
+			SELECT o.id, o.user_id, o.customer_name, COALESCE(u.phone, ''), o.service_name, o.quantity, o.total_cost, o.status 
+			FROM orders o
+			LEFT JOIN users u ON o.user_id = u.id
+			WHERE 1=1`
 		var args []interface{}
 
 		if staff {
 			// Staff can search across all customers
 			if searchQuery != "" {
-				query += " AND customer_name LIKE ?"
+				query += " AND o.customer_name LIKE ?"
 				args = append(args, "%"+searchQuery+"%")
 			}
 		} else if currentUser != nil {
-			// Logged-in customer ONLY sees orders matching their exact account name
-			query += " AND customer_name = ?"
-			args = append(args, currentUser.FullName)
+			// Logged-in customer sees orders linked to their user_id (or legacy v2.0 orders with user_id=0 matching their name)
+			query += " AND (o.user_id = ? OR (o.user_id = 0 AND o.customer_name = ?))"
+			args = append(args, currentUser.ID, currentUser.FullName)
 		}
 
 		// Both Staff and Customers can filter by workflow status
 		if statusFilter != "" {
-			query += " AND status = ?"
+			query += " AND o.status = ?"
 			args = append(args, statusFilter)
 		}
 
-		query += " ORDER BY id DESC"
+		query += " ORDER BY o.id DESC"
 
 		rows, err := db.Query(query, args...)
 		if err != nil {
@@ -112,7 +119,7 @@ func HomeHandler(w http.ResponseWriter, r *http.Request) {
 
 		for rows.Next() {
 			var o Order
-			if err := rows.Scan(&o.ID, &o.CustomerName, &o.ServiceName, &o.Quantity, &o.TotalCost, &o.Status); err == nil {
+			if err := rows.Scan(&o.ID, &o.UserID, &o.CustomerName, &o.CustomerPhone, &o.ServiceName, &o.Quantity, &o.TotalCost, &o.Status); err == nil {
 				orders = append(orders, o)
 				totalRevenue += o.TotalCost
 			}
@@ -319,9 +326,9 @@ func ReceiptHandler(w http.ResponseWriter, r *http.Request) {
 
 	var o Order
 	err = db.QueryRow(
-		"SELECT id, customer_name, service_name, quantity, total_cost, status FROM orders WHERE id = ?",
+		"SELECT id, user_id, customer_name, service_name, quantity, total_cost, status FROM orders WHERE id = ?",
 		orderID,
-	).Scan(&o.ID, &o.CustomerName, &o.ServiceName, &o.Quantity, &o.TotalCost, &o.Status)
+	).Scan(&o.ID, &o.UserID, &o.CustomerName, &o.ServiceName, &o.Quantity, &o.TotalCost, &o.Status)
 	if err != nil {
 		http.Error(w, "Order receipt not found", http.StatusNotFound)
 		return
@@ -330,7 +337,9 @@ func ReceiptHandler(w http.ResponseWriter, r *http.Request) {
 	// Security Check: Only Staff or the Customer who owns the order can view the receipt
 	staff := isStaff(r)
 	currentUser := getLoggedInCustomer(r)
-	if !staff && (currentUser == nil || currentUser.FullName != o.CustomerName) {
+	ownsOrder := currentUser != nil && (o.UserID == currentUser.ID || (o.UserID == 0 && o.CustomerName == currentUser.FullName))
+
+	if !staff && !ownsOrder {
 		http.Error(w, "Unauthorized: You can only view your own receipts", http.StatusForbidden)
 		return
 	}
@@ -342,7 +351,6 @@ func ReceiptHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	tmpl.Execute(w, o)
 }
-
 func getLoggedInCustomer(r *http.Request) *User {
 	cookie, err := r.Cookie("customer_session")
 	if err != nil || cookie.Value == "" {

@@ -42,4 +42,22 @@ func InitDB() {
 	if err != nil {
 		log.Fatal("Failed to creater users table: ", err)
 	}
+	createOrdersTable := `
+	CREATE TABLE IF NOT EXISTS orders (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		user_id INTEGER DEFAULT 0,
+		customer_name TEXT NOT NULL,
+		service_name TEXT NOT NULL,
+		quantity INTEGER NOT NULL,
+		total_price REAL NOT NULL,
+		status TEXT DEFAULT 'Pending'
+	);`
+
+	_, err = db.Exec(createOrdersTable)
+	if err != nil {
+		log.Fatal("Failed to create orders table:", err)
+	}
+
+	// Safely upgrade existing local databases that were created before v3.0
+	_, _ = db.Exec("ALTER TABLE orders ADD COLUMN user_id INTEGER DEFAULT 0;")
 }
