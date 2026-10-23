@@ -326,3 +326,50 @@ func TestCustomerOrderPrivacy(t *testing.T) {
 		t.Errorf("Privacy violation: Customer 'Wealth Ibe' should NOT see 'Chinedu Okafor's order")
 	}
 }
+
+func TestUnifiedAdminLogin(t *testing.T) {
+	setupTestDB(t)
+	defer db.Close()
+
+	// 1. Send Admin credentials (with uppercase ADMIN to test case-insensitivity)
+	form := url.Values{}
+	form.Add("identifier", "ADMIN@apexwash.com")
+	form.Add("password", "admin123")
+
+	req := httptest.NewRequest(http.MethodPost, "/login-customer", strings.NewReader(form.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+	// Attach an active customer cookie to verify Admin login clears it
+	req.AddCookie(&http.Cookie{
+		Name:  "customer_session",
+		Value: "1",
+	})
+
+	rr := httptest.NewRecorder()
+	CustomerLoginHandler(rr, req)
+
+	// 2. Expect a 303 redirect back to "/"
+	if rr.Code != http.StatusSeeOther {
+		t.Errorf("Expected status 303 SeeOther, got %d", rr.Code)
+	}
+
+	// 3. Verify staff_session is issued and customer_session is cleared
+	var hasStaffCookie bool
+	var clearedCustomerCookie bool
+
+	for _, cookie := range rr.Result().Cookies() {
+		if cookie.Name == "staff_session" && cookie.Value == "authenticated" {
+			hasStaffCookie = true
+		}
+		if cookie.Name == "customer_session" && cookie.MaxAge < 0 {
+			clearedCustomerCookie = true
+		}
+	}
+
+	if !hasStaffCookie {
+		t.Error("Expected staff_session cookie to be set to 'authenticated'")
+	}
+	if !clearedCustomerCookie {
+		t.Error("Expected existing customer_session cookie to be cleared (MaxAge < 0)")
+	}
+}
