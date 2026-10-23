@@ -22,14 +22,10 @@
             <button type="submit" style="background: #64748b; padding: 6px 12px; font-size: 0.85rem;">Logout</button>
         </form>
         {{ else }}
-        <span style="color: #475569; font-size: 0.9rem;">🔒 Customer View (Staff Login Required to Manage Orders)</span>
-        <form action="/login" method="POST" style="display: flex; gap: 8px; margin: 0;">
-            <input type="password" name="password" placeholder="Staff password..." required
-                style="padding: 6px 10px; border: 1px solid #cbd5e1; border-radius: 6px;">
-            <button type="submit" style="padding: 6px 12px; font-size: 0.85rem;">Staff Login</button>
-        </form>
+        <span style="color: #475569; font-size: 0.9rem;">✨ Welcome to ApexWash Customer Portal</span>
         {{ end }}
     </div>
+
     {{if not .IsStaff}}
     <section class="customer-auth-section" style="margin: 20px 0;">
         {{if .CurrentUser}}
@@ -46,55 +42,34 @@
             </form>
         </div>
         {{else}}
-        <div style="display: flex; gap: 20px; flex-wrap: wrap;">
-            <!-- Customer Login Card -->
-            <div class="card"
-                style="flex: 1; min-width: 280px; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px;">
-                <h3 style="margin-top: 0;">🔑 Customer Login</h3>
-                <form action="/login-customer" method="POST">
-                    <div style="margin-bottom: 12px;">
-                        <label style="display: block; margin-bottom: 4px;">Phone or Email:</label>
-                        <input type="text" name="identifier" placeholder="0803... or email@example.com" required
-                            style="width: 100%; padding: 8px; box-sizing: border-box;">
-                    </div>
-                    <div style="margin-bottom: 12px;">
-                        <label style="display: block; margin-bottom: 4px;">Password:</label>
-                        <input type="password" name="password" required
-                            style="width: 100%; padding: 8px; box-sizing: border-box;">
-                    </div>
-                    <button type="submit" style="width: 100%; padding: 10px; cursor: pointer;">Login to My
-                        Account</button>
-                </form>
-            </div>
+        <!-- Single Unified Login Card (Handles both Customers and Admin) -->
+        <div class="card"
+            style="max-width: 420px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 10px; background: white; box-shadow: 0 2px 8px rgba(0,0,0,0.04);">
+            <h3 style="margin-top: 0; text-align: center;">🔑 Account Login</h3>
+            <form action="/login-customer" method="POST">
+                <div style="margin-bottom: 12px;">
+                    <label style="display: block; margin-bottom: 4px; font-weight: 600; font-size: 0.9rem;">Email or
+                        Phone Number:</label>
+                    <input type="text" name="identifier" placeholder="Email or WhatsApp number" required
+                        style="width: 100%; padding: 10px; box-sizing: border-box; border: 1px solid #cbd5e1; border-radius: 6px;">
+                </div>
+                <div style="margin-bottom: 16px;">
+                    <label
+                        style="display: block; margin-bottom: 4px; font-weight: 600; font-size: 0.9rem;">Password:</label>
+                    <input type="password" name="password" placeholder="Enter your password" required
+                        style="width: 100%; padding: 10px; box-sizing: border-box; border: 1px solid #cbd5e1; border-radius: 6px;">
+                </div>
+                <button type="submit"
+                    style="width: 100%; padding: 10px; background: #1e293b; color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer;">Log
+                    In</button>
+            </form>
 
-            <!-- Customer Signup Card -->
-            <div class="card"
-                style="flex: 1; min-width: 280px; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px;">
-                <h3 style="margin-top: 0;">✨ Create Customer Account</h3>
-                <form action="/signup" method="POST">
-                    <div style="margin-bottom: 8px;">
-                        <input type="text" name="full_name" placeholder="Full Name (e.g. Wealth Ibe)" required
-                            style="width: 100%; padding: 8px; box-sizing: border-box;">
-                    </div>
-                    <div style="margin-bottom: 8px;">
-                        <input type="email" name="email" placeholder="Email Address" required
-                            style="width: 100%; padding: 8px; box-sizing: border-box;">
-                    </div>
-                    <div style="margin-bottom: 8px;">
-                        <input type="text" name="phone" placeholder="Phone Number (WhatsApp)" required
-                            style="width: 100%; padding: 8px; box-sizing: border-box;">
-                    </div>
-                    <div style="margin-bottom: 8px;">
-                        <input type="text" name="address" placeholder="Delivery Street Address" required
-                            style="width: 100%; padding: 8px; box-sizing: border-box;">
-                    </div>
-                    <div style="margin-bottom: 12px;">
-                        <input type="password" name="password" placeholder="Create Password" required
-                            style="width: 100%; padding: 8px; box-sizing: border-box;">
-                    </div>
-                    <button type="submit" style="width: 100%; padding: 10px; cursor: pointer;">Sign Up & Track
-                        Orders</button>
-                </form>
+            <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 20px 0;">
+
+            <div style="text-align: center;">
+                <a href="/signup"
+                    style="display: inline-block; background: #0f766e; color: white; text-decoration: none; padding: 10px 20px; border-radius: 6px; font-weight: 600; font-size: 0.9rem;">Create
+                    New Account</a>
             </div>
         </div>
         {{end}}
@@ -121,9 +96,10 @@
         <div>
             <label>Your Name:</label>
             {{if .CurrentUser}}
-                <input type="text" name="customer_name" value="{{.CurrentUser.FullName}}" readonly style="background-color: #f1f5f9; cursor: not-allowed;" >
+            <input type="text" name="customer_name" value="{{.CurrentUser.FullName}}" readonly
+                style="background-color: #f1f5f9; cursor: not-allowed;">
             {{else}}
-                <input type="text" name="customer_name" required>
+            <input type="text" name="customer_name" required>
             {{end}}
         </div>
 
@@ -199,7 +175,7 @@
         {{else}}
         <li>No active orders right now</li>
         {{end}}
-        
+
     </ul>
 
 </body>
