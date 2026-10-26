@@ -22,21 +22,54 @@ func BookHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Method not Allowed", http.StatusMethodNotAllowed)
 		return
 	}
-	customer := r.FormValue("customer_name")
-	userID := 0
-	if currentUser := getLoggedInCustomer(r); currentUser != nil {
-		customer = currentUser.FullName
-		userID = currentUser.ID
-	}
-	if customer == "" {
-		http.Error(w, "Customer name is required", 400)
+
+	staff := isStaff(r)
+	currentUser := getLoggedInCustomer(r)
+
+	// Gatekeeper: If not Staff and not a logged-in Customer, redirect to Signup
+	if !staff && currentUser == nil {
+		http.Redirect(w, r, "/signup", http.StatusSeeOther)
 		return
 	}
+
+	customer := strings.TrimSpace(r.FormValue("customer_name"))
+	phone := strings.TrimSpace(r.FormValue("customer_phone"))
+	address := strings.TrimSpace(r.FormValue("delivery_address"))
+	userID := 0
+
+	if currentUser != nil {
+		// Logged-in customer: auto-fill from their account profile
+		userID = currentUser.ID
+		customer = currentUser.FullName
+		phone = currentUser.Phone
+		if address == "" {
+			address = currentUser.Address
+		}
+	} else if staff {
+		// Staff walk-in order: validate phone if provided so WhatsApp button works
+		if phone != "" {
+			validPhone, ok := normalizeAndValidatePhone(phone)
+			if !ok {
+				http.Error(w, "Invalid Nigerian phone number for walk-in customer", http.StatusBadRequest)
+				return
+			}
+			phone = validPhone
+		}
+		if address == "" {
+			address = "Shop Pickup"
+		}
+	}
+
+	if customer == "" {
+		http.Error(w, "Customer name is required", http.StatusBadRequest)
+		return
+	}
+
 	service := r.FormValue("service_name")
 	quantity := r.FormValue("quantity")
 
 	qty, err := strconv.Atoi(quantity)
-	if err != nil {
+	if err != nil || qty <= 0 {
 		http.Error(w, "Invalid Quantity Entered", http.StatusBadRequest)
 		return
 	}
@@ -51,8 +84,8 @@ func BookHandler(w http.ResponseWriter, r *http.Request) {
 
 	totalCost := qty * unitprice
 
-	insertSQL := `INSERT INTO orders (user_id, customer_name, service_name, quantity, total_cost, status) VALUES(?, ?, ?, ?, ?, ?)`
-	_, err = db.Exec(insertSQL, userID, customer, service, qty, totalCost, "Pending")
+	insertSQL := `INSERT INTO orders (user_id, customer_name, customer_phone, delivery_address, service_name, quantity, total_cost, status) VALUES(?, ?, ?, ?, ?, ?, ?, ?)`
+	_, err = db.Exec(insertSQL, userID, customer, phone, address, service, qty, totalCost, "Pending")
 	if err != nil {
 		http.Error(w, "Failed to save order", http.StatusInternalServerError)
 		return
@@ -81,10 +114,12 @@ func HomeHandler(w http.ResponseWriter, r *http.Request) {
 	totalRevenue := 0
 
 	// Only query orders if the visitor is Staff OR a logged-in Customer
-	// Only query orders if the visitor is Staff OR a logged-in Customer
 	if staff || currentUser != nil {
 		query := `
-			SELECT o.id, o.user_id, o.customer_name, COALESCE(u.phone, ''), o.service_name, o.quantity, o.total_cost, o.status 
+			SELECT o.id, o.user_id, o.customer_name,
+			       COALESCE(NULLIF(o.customer_phone, ''), u.phone, ''),
+			       COALESCE(NULLIF(o.delivery_address, ''), u.address, 'Shop Pickup'),
+			       o.service_name, o.quantity, o.total_cost, o.status 
 			FROM orders o
 			LEFT JOIN users u ON o.user_id = u.id
 			WHERE 1=1`
@@ -119,7 +154,7 @@ func HomeHandler(w http.ResponseWriter, r *http.Request) {
 
 		for rows.Next() {
 			var o Order
-			if err := rows.Scan(&o.ID, &o.UserID, &o.CustomerName, &o.CustomerPhone, &o.ServiceName, &o.Quantity, &o.TotalCost, &o.Status); err == nil {
+			if err := rows.Scan(&o.ID, &o.UserID, &o.CustomerName, &o.CustomerPhone, &o.DeliveryAddress, &o.ServiceName, &o.Quantity, &o.TotalCost, &o.Status); err == nil {
 				orders = append(orders, o)
 				totalRevenue += o.TotalCost
 			}
@@ -145,7 +180,7 @@ func HomeHandler(w http.ResponseWriter, r *http.Request) {
 		TotalRevenue: totalRevenue,
 		SearchQuery:  searchQuery,
 		StatusFilter: statusFilter,
-		IsStaff:      isStaff(r),
+		IsStaff:      staff,
 		CurrentUser:  currentUser,
 	}
 
@@ -325,10 +360,16 @@ func ReceiptHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var o Order
-	err = db.QueryRow(
-		"SELECT id, user_id, customer_name, service_name, quantity, total_cost, status FROM orders WHERE id = ?",
+	err = db.QueryRow(`
+		SELECT o.id, o.user_id, o.customer_name,
+		       COALESCE(NULLIF(o.customer_phone, ''), u.phone, ''),
+		       COALESCE(NULLIF(o.delivery_address, ''), u.address, 'Shop Pickup'),
+		       o.service_name, o.quantity, o.total_cost, o.status
+		FROM orders o
+		LEFT JOIN users u ON o.user_id = u.id
+		WHERE o.id = ?`,
 		orderID,
-	).Scan(&o.ID, &o.UserID, &o.CustomerName, &o.ServiceName, &o.Quantity, &o.TotalCost, &o.Status)
+	).Scan(&o.ID, &o.UserID, &o.CustomerName, &o.CustomerPhone, &o.DeliveryAddress, &o.ServiceName, &o.Quantity, &o.TotalCost, &o.Status)
 	if err != nil {
 		http.Error(w, "Order receipt not found", http.StatusNotFound)
 		return
@@ -351,6 +392,7 @@ func ReceiptHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	tmpl.Execute(w, o)
 }
+
 func getLoggedInCustomer(r *http.Request) *User {
 	cookie, err := r.Cookie("customer_session")
 	if err != nil || cookie.Value == "" {

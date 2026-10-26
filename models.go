@@ -12,27 +12,29 @@ type ServiceItem struct {
 }
 
 type PageData struct {
-	ShopName     string
-	Tagline      string
-	Services     []ServiceItem
-	Orders       []Order
-	TotalOrders  int
-	TotalRevenue int
-	SearchQuery  string
-	StatusFilter string
-	IsStaff      bool
-	CurrentUser  *User
+	ShopName      string
+	Tagline       string
+	Services      []ServiceItem
+	Orders        []Order
+	TotalOrders   int
+	TotalRevenue  int
+	SearchQuery   string
+	StatusFilter  string
+	IsStaff       bool
+	CurrentUser   *User
+	CustomerError string
 }
 
 type Order struct {
-	ID            int    `json:"id"`
-	UserID        int    `json:"user_id"`
-	CustomerName  string `json:"customer_name"`
-	CustomerPhone string `json:"customer_phone,omitempty"`
-	ServiceName   string `json:"service_name"`
-	Quantity      int    `json:"quantity"`
-	TotalCost     int    `json:"total_cost"`
-	Status        string `json:"status"`
+	ID              int    `json:"id"`
+	UserID          int    `json:"user_id"`
+	CustomerName    string `json:"customer_name"`
+	CustomerPhone   string `json:"customer_phone,omitempty"`
+	DeliveryAddress string `json:"delivery_address,omitempty"`
+	ServiceName     string `json:"service_name"`
+	Quantity        int    `json:"quantity"`
+	TotalCost       int    `json:"total_cost"`
+	Status          string `json:"status"`
 }
 
 type User struct {

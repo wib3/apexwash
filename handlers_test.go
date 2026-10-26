@@ -26,6 +26,8 @@ func setupTestDB(t *testing.T) {
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
 		user_id INTEGER DEFAULT 0,
 		customer_name TEXT NOT NULL,
+		customer_phone TEXT DEFAULT '',
+		delivery_address TEXT DEFAULT '',
 		service_name TEXT NOT NULL,
 		quantity INTEGER NOT NULL,
 		total_cost INTEGER NOT NULL,
@@ -117,6 +119,7 @@ func TestBookAndAPIOrdersHandler(t *testing.T) {
 
 	reqBook := httptest.NewRequest(http.MethodPost, "/book", strings.NewReader(form.Encode()))
 	reqBook.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	reqBook.AddCookie(&http.Cookie{Name: "staff_session", Value: "authenticated"})
 	recBook := httptest.NewRecorder()
 
 	BookHandler(recBook, reqBook)
@@ -232,6 +235,7 @@ func TestReceiptHandler(t *testing.T) {
 		t.Errorf("Expected 404 Not Found for missing order receipt, got %d", notFoundRR.Code)
 	}
 }
+
 func TestCustomerSignupAndLogin(t *testing.T) {
 	setupTestDB(t)
 
@@ -482,5 +486,59 @@ func TestWhatsAppURLGeneration(t *testing.T) {
 	}
 	if guestOrder.WhatsAppURL() != "" {
 		t.Errorf("Expected empty WhatsAppURL for guest without phone, got %s", guestOrder.WhatsAppURL())
+	}
+}
+
+func TestBookingGatekeeperAndWalkIn(t *testing.T) {
+	setupTestDB(t)
+	defer db.Close()
+
+	// 1. Unauthenticated guest tries to book -> must redirect to /signup
+	guestForm := url.Values{}
+	guestForm.Add("customer_name", "Anonymous Guest")
+	guestForm.Add("service_name", serviceList[0].Name)
+	guestForm.Add("quantity", "2")
+
+	guestReq := httptest.NewRequest(http.MethodPost, "/book", strings.NewReader(guestForm.Encode()))
+	guestReq.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	guestRR := httptest.NewRecorder()
+
+	BookHandler(guestRR, guestReq)
+
+	if guestRR.Code != http.StatusSeeOther || guestRR.Header().Get("Location") != "/signup" {
+		t.Fatalf("Expected unauthenticated booking to redirect to /signup, got status %d (Location: %s)",
+			guestRR.Code, guestRR.Header().Get("Location"))
+	}
+
+	// 2. Staff logs a walk-in order requiring home delivery & WhatsApp notifications
+	staffForm := url.Values{}
+	staffForm.Add("customer_name", "Chief Walk-In")
+	staffForm.Add("customer_phone", "+2348039998888")
+	staffForm.Add("delivery_address", "14 GRA Road, Otukpo")
+	staffForm.Add("service_name", serviceList[0].Name)
+	staffForm.Add("quantity", "4")
+
+	staffReq := httptest.NewRequest(http.MethodPost, "/book", strings.NewReader(staffForm.Encode()))
+	staffReq.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	staffReq.AddCookie(&http.Cookie{Name: "staff_session", Value: "authenticated"})
+	staffRR := httptest.NewRecorder()
+
+	BookHandler(staffRR, staffReq)
+
+	if staffRR.Code != http.StatusSeeOther || staffRR.Header().Get("Location") != "/" {
+		t.Fatalf("Expected staff walk-in booking to redirect to /, got %d", staffRR.Code)
+	}
+
+	// Verify phone normalization and delivery address persistence in SQLite
+	var savedPhone, savedAddr string
+	err := db.QueryRow("SELECT customer_phone, delivery_address FROM orders WHERE customer_name = 'Chief Walk-In'").Scan(&savedPhone, &savedAddr)
+	if err != nil {
+		t.Fatalf("Failed to query saved walk-in order: %v", err)
+	}
+	if savedPhone != "08039998888" {
+		t.Errorf("Expected normalized walk-in phone 08039998888, got %s", savedPhone)
+	}
+	if savedAddr != "14 GRA Road, Otukpo" {
+		t.Errorf("Expected delivery address '14 GRA Road, Otukpo', got %s", savedAddr)
 	}
 }

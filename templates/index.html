@@ -91,17 +91,36 @@
         <li>{{.Name}} costs ₦{{.Price}}</li>
         {{end}}
     </ul>
+
     <h2>Book a Pickup</h2>
+    {{ if or .IsStaff .CurrentUser }}
     <form action="/book" method="post">
+        {{ if .CurrentUser }}
         <div>
             <label>Your Name:</label>
-            {{if .CurrentUser}}
             <input type="text" name="customer_name" value="{{.CurrentUser.FullName}}" readonly
                 style="background-color: #f1f5f9; cursor: not-allowed;">
-            {{else}}
-            <input type="text" name="customer_name" required>
-            {{end}}
         </div>
+        <div>
+            <label>Delivery Address:</label>
+            <input type="text" name="delivery_address" value="{{.CurrentUser.Address}}"
+                placeholder="Delivery Address" required>
+        </div>
+        {{ else }}
+        <!-- Staff Walk-in Booking Inputs -->
+        <div>
+            <label>Walk-In Customer Name:</label>
+            <input type="text" name="customer_name" placeholder="Enter customer name" required>
+        </div>
+        <div>
+            <label>Walk-In WhatsApp Phone (Optional):</label>
+            <input type="tel" name="customer_phone" placeholder="e.g. 08031234567">
+        </div>
+        <div>
+            <label>Delivery Address / Pickup Note:</label>
+            <input type="text" name="delivery_address" placeholder="Leave blank for Shop Pickup">
+        </div>
+        {{ end }}
 
         <div>
             <label>Select Service:</label>
@@ -118,6 +137,19 @@
         </div>
         <button type="submit">Submit Order</button>
     </form>
+    {{ else }}
+    <div style="padding: 20px; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; text-align: center; margin-bottom: 24px;">
+        <p style="margin: 0 0 12px 0; color: #334155; font-size: 1rem;">
+            🔒 <strong>Please log in above or create an account to book a laundry order.</strong><br>
+            <span style="font-size: 0.9rem; color: #64748b;">Track your live laundry status, print digital receipts, and receive WhatsApp updates.</span>
+        </p>
+        <a href="/signup"
+            style="display: inline-block; padding: 10px 18px; background: #0f766e; color: white; text-decoration: none; border-radius: 6px; font-weight: bold;">
+            Create New Account &rarr;
+        </a>
+    </div>
+    {{ end }}
+
     <h2>Active Laundry Orders</h2>
     <div
         style="margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
@@ -149,7 +181,7 @@
         <li>
             <span>
                 <strong>#{{.ID}} {{.CustomerName}}</strong> - {{.ServiceName}} (Qty: {{.Quantity}} | Total:
-                ₦{{.TotalCost}} | Status: <em>{{.Status}}</em>)
+                ₦{{.TotalCost}} | Status: <em>{{.Status}}</em> | 📍 {{.DeliveryAddress}})
                 <a href="/receipt?id={{.ID}}"
                     style="margin-left: 8px; padding: 4px 10px; background: #e0f2fe; color: #0369a1; text-decoration: none; border-radius: 4px; font-size: 0.8rem; font-weight: bold;">🧾
                     Receipt</a>
