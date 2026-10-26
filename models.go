@@ -35,6 +35,7 @@ type Order struct {
 	Quantity        int    `json:"quantity"`
 	TotalCost       int    `json:"total_cost"`
 	Status          string `json:"status"`
+	PaymentStatus   string `json:"payment_status"`
 }
 
 type User struct {
@@ -48,9 +49,11 @@ type User struct {
 
 var serviceList = []ServiceItem{
 	{Name: "Shirt(Wash and Iron)", Price: 500},
-	{Name: "Trousers", Price: 600},
-	{Name: "Native Wear(2-piece)", Price: 1200},
-	{Name: "Bed Sheet/Duvet", Price: 1500},
+	{Name: "Trouser(Wash and Iron)", Price: 500},
+	{Name: "Suit (2-Piece)", Price: 2500},
+	{Name: "Agbada / Senator", Price: 2000},
+	{Name: "Duvet / Bedsheet", Price: 3000},
+	{Name: "Wash & Fold", Price: 1500},
 }
 
 // WhatsAppURL generates a pre-filled wa.me link if the order has a valid customer phone number.
@@ -67,16 +70,21 @@ func (o Order) WhatsAppURL() string {
 		intlPhone = strings.TrimPrefix(intlPhone, "+")
 	}
 
+	payInfo := o.PaymentStatus
+	if payInfo == "" {
+		payInfo = "Unpaid"
+	}
+
 	var msg string
 	if strings.EqualFold(o.Status, "Ready") || strings.EqualFold(o.Status, "Ready for Pickup") {
 		msg = fmt.Sprintf(
-			"Hello %s! Your ApexWash order #%d (%dx %s) is READY for pickup/delivery! Total: ₦%d. Thank you for choosing ApexWash!",
-			o.CustomerName, o.ID, o.Quantity, o.ServiceName, o.TotalCost,
+			"Hello %s! Your ApexWash order #%d (%dx %s) is READY for pickup/delivery! Total: ₦%d (%s). Thank you for choosing ApexWash!",
+			o.CustomerName, o.ID, o.Quantity, o.ServiceName, o.TotalCost, payInfo,
 		)
 	} else {
 		msg = fmt.Sprintf(
-			"Hello %s! Quick update on your ApexWash order #%d (%dx %s) — current status: %s. Total: ₦%d.",
-			o.CustomerName, o.ID, o.Quantity, o.ServiceName, o.Status, o.TotalCost,
+			"Hello %s! Quick update on your ApexWash order #%d (%dx %s) — current status: %s. Total: ₦%d (%s).",
+			o.CustomerName, o.ID, o.Quantity, o.ServiceName, o.Status, o.TotalCost, payInfo,
 		)
 	}
 

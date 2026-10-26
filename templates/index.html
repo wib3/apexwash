@@ -182,6 +182,11 @@
             <span>
                 <strong>#{{.ID}} {{.CustomerName}}</strong> - {{.ServiceName}} (Qty: {{.Quantity}} | Total:
                 ₦{{.TotalCost}} | Status: <em>{{.Status}}</em> | 📍 {{.DeliveryAddress}})
+                {{ if eq .PaymentStatus "Paid" }}
+                <span style="margin-left: 6px; padding: 3px 8px; background: #dcfce7; color: #166534; border-radius: 999px; font-size: 0.75rem; font-weight: bold;">PAID &#10003;</span>
+                {{ else }}
+                <span style="margin-left: 6px; padding: 3px 8px; background: #fee2e2; color: #991b1b; border-radius: 999px; font-size: 0.75rem; font-weight: bold;">UNPAID</span>
+                {{ end }}
                 <a href="/receipt?id={{.ID}}"
                     style="margin-left: 8px; padding: 4px 10px; background: #e0f2fe; color: #0369a1; text-decoration: none; border-radius: 4px; font-size: 0.8rem; font-weight: bold;">🧾
                     Receipt</a>
@@ -194,6 +199,15 @@
                     💬 Notify
                 </a>
                 {{ end }}
+
+                <form action="/toggle-payment" method="post" style="margin: 0;">
+                    <input type="hidden" name="order_id" value="{{.ID}}">
+                    {{ if eq .PaymentStatus "Paid" }}
+                    <button type="submit" style="background-color: #64748b; font-size: 0.85rem; padding: 6px 10px;">↩️ Mark Unpaid</button>
+                    {{ else }}
+                    <button type="submit" style="background-color: #0284c7; font-size: 0.85rem; padding: 6px 10px;">💳 Mark Paid</button>
+                    {{ end }}
+                </form>
 
                 {{ if ne .Status "Ready for Pickup" }}
                 <form action="/update-status" method="post" style="margin: 0;">

@@ -26,7 +26,8 @@ func InitDB() {
 		service_name TEXT NOT NULL,
 		quantity INTEGER NOT NULL,
 		total_cost INTEGER NOT NULL,
-		status TEXT NOT NULL DEFAULT 'Pending'
+		status TEXT NOT NULL DEFAULT 'Pending',
+		payment_status TEXT NOT NULL DEFAULT 'Unpaid'
 	);`
 
 	_, err = db.Exec(createOrdersTable)
@@ -53,4 +54,5 @@ func InitDB() {
 	_, _ = db.Exec("ALTER TABLE orders ADD COLUMN user_id INTEGER DEFAULT 0;")
 	_, _ = db.Exec("ALTER TABLE orders ADD COLUMN customer_phone TEXT DEFAULT '';")
 	_, _ = db.Exec("ALTER TABLE orders ADD COLUMN delivery_address TEXT DEFAULT '';")
+	_, _ = db.Exec("ALTER TABLE orders ADD COLUMN payment_status TEXT NOT NULL DEFAULT 'Unpaid';")
 }

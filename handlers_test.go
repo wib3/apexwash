@@ -31,7 +31,8 @@ func setupTestDB(t *testing.T) {
 		service_name TEXT NOT NULL,
 		quantity INTEGER NOT NULL,
 		total_cost INTEGER NOT NULL,
-		status TEXT DEFAULT 'Pending'
+		status TEXT DEFAULT 'Pending',
+		payment_status TEXT DEFAULT 'Unpaid'
 	)`)
 	if err != nil {
 		t.Fatalf("Failed to create orders table: %v", err)
@@ -470,6 +471,7 @@ func TestWhatsAppURLGeneration(t *testing.T) {
 		Quantity:      3,
 		TotalCost:     4500,
 		Status:        "Ready for Pickup",
+		PaymentStatus: "Paid",
 	}
 
 	waURL := readyOrder.WhatsAppURL()
@@ -580,5 +582,46 @@ func TestSessionTamperingAndAPISecurity(t *testing.T) {
 
 	if unauthAPIRR.Code != http.StatusUnauthorized {
 		t.Errorf("Expected 401 Unauthorized for unauthenticated /api/orders request, got %d", unauthAPIRR.Code)
+	}
+}
+
+// Test 14: Verify Staff Payment Status Toggle (Unpaid <-> Paid)
+func TestTogglePaymentHandler(t *testing.T) {
+	setupTestDB(t)
+	defer db.Close()
+
+	_, err := db.Exec(`INSERT INTO orders (id, customer_name, service_name, quantity, total_cost, status, payment_status)
+		VALUES (1, 'Chief Obi', 'Agbada / Senator', 1, 2000, 'Pending', 'Unpaid')`)
+	if err != nil {
+		t.Fatalf("Failed to seed order: %v", err)
+	}
+
+	// 1. Unauthenticated toggle attempt -> 401 Unauthorized
+	unauthForm := url.Values{"order_id": {"1"}}
+	unauthReq := httptest.NewRequest(http.MethodPost, "/toggle-payment", strings.NewReader(unauthForm.Encode()))
+	unauthReq.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	unauthRR := httptest.NewRecorder()
+
+	TogglePaymentHandler(unauthRR, unauthReq)
+	if unauthRR.Code != http.StatusUnauthorized {
+		t.Fatalf("Expected 401 Unauthorized for unauthenticated payment toggle, got %d", unauthRR.Code)
+	}
+
+	// 2. Staff toggles payment -> should become "Paid"
+	staffForm := url.Values{"order_id": {"1"}}
+	staffReq := httptest.NewRequest(http.MethodPost, "/toggle-payment", strings.NewReader(staffForm.Encode()))
+	staffReq.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	staffReq.AddCookie(&http.Cookie{Name: "staff_session", Value: signSessionValue("authenticated")})
+	staffRR := httptest.NewRecorder()
+
+	TogglePaymentHandler(staffRR, staffReq)
+	if staffRR.Code != http.StatusSeeOther {
+		t.Fatalf("Expected 303 SeeOther on staff payment toggle, got %d", staffRR.Code)
+	}
+
+	var payStatus string
+	_ = db.QueryRow("SELECT payment_status FROM orders WHERE id = 1").Scan(&payStatus)
+	if payStatus != "Paid" {
+		t.Errorf("Expected payment_status to be 'Paid', got '%s'", payStatus)
 	}
 }

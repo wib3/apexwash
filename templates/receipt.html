@@ -76,6 +76,26 @@
             color: #1e293b;
         }
 
+        .paid-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 999px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .unpaid-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 999px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
         .actions {
             margin-top: 28px;
             display: flex;
@@ -148,6 +168,10 @@
             <strong>{{ .CustomerName }}</strong>
         </div>
         <div class="row">
+            <span>Delivery / Pickup:</span>
+            <strong>{{ .DeliveryAddress }}</strong>
+        </div>
+        <div class="row">
             <span>Service Type:</span>
             <strong>{{ .ServiceName }}</strong>
         </div>
@@ -158,6 +182,14 @@
         <div class="row">
             <span>Current Status:</span>
             <span class="status-badge">{{ .Status }}</span>
+        </div>
+        <div class="row">
+            <span>Payment Status:</span>
+            {{ if eq .PaymentStatus "Paid" }}
+            <span class="paid-badge">PAID &#10003;</span>
+            {{ else }}
+            <span class="unpaid-badge">UNPAID</span>
+            {{ end }}
         </div>
 
         <div class="total-row">
@@ -173,7 +205,7 @@
             <button onclick="window.print()" class="btn btn-print">
                 🖨️ Print / Save PDF
             </button>
-            <a href="https://wa.me/?text=Hello%20{{.CustomerName}},%20your%20ApexWash%20Order%20%23APX-{{.ID}}%20({{.Quantity}}x%20{{.ServiceName}})%20for%20%E2%82%A6{{.TotalCost}}%20is%20currently:%20*{{.Status}}*.%20Thank%20you%20for%20choosing%20ApexWash!"
+            <a href="https://wa.me/?text=Hello%20{{.CustomerName}},%20your%20ApexWash%20Order%20%23APX-{{.ID}}%20({{.Quantity}}x%20{{.ServiceName}})%20for%20%E2%82%A6{{.TotalCost}}%20({{.PaymentStatus}})%20is%20currently:%20*{{.Status}}*.%20Thank%20you%20for%20choosing%20ApexWash!"
                 target="_blank" class="btn" style="background: #25d366; color: white">💬 Share on WhatsApp</a>
             <a href="/" class="btn btn-back">&larr; Back to Dashboard</a>
         </div>
