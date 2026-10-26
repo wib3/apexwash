@@ -1,7 +1,10 @@
 package main
 
 import (
+	"crypto/hmac"
+	"crypto/sha256"
 	"encoding/csv"
+	"encoding/hex"
 	"encoding/json"
 	"html/template"
 	"net/http"
@@ -12,9 +15,48 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+// sessionSecret returns the HMAC signing key from SESSION_SECRET env var (with a fallback for local dev/testing).
+func sessionSecret() []byte {
+	secret := os.Getenv("SESSION_SECRET")
+	if secret == "" {
+		secret = "apexwash-default-hmac-secret-key-2026"
+	}
+	return []byte(secret)
+}
+
+// signSessionValue attaches an HMAC-SHA256 signature to a raw session value: "value.signature"
+func signSessionValue(val string) string {
+	mac := hmac.New(sha256.New, sessionSecret())
+	mac.Write([]byte(val))
+	sig := hex.EncodeToString(mac.Sum(nil))
+	return val + "." + sig
+}
+
+// verifySessionValue validates the HMAC-SHA256 signature and returns the original payload if untampered.
+func verifySessionValue(cookieVal string) (string, bool) {
+	parts := strings.SplitN(cookieVal, ".", 2)
+	if len(parts) != 2 {
+		return "", false
+	}
+	val, providedSig := parts[0], parts[1]
+
+	mac := hmac.New(sha256.New, sessionSecret())
+	mac.Write([]byte(val))
+	expectedSig := hex.EncodeToString(mac.Sum(nil))
+
+	if !hmac.Equal([]byte(providedSig), []byte(expectedSig)) {
+		return "", false
+	}
+	return val, true
+}
+
 func isStaff(r *http.Request) bool {
 	cookie, err := r.Cookie("staff_session")
-	return err == nil && cookie.Value == "authenticated"
+	if err != nil || cookie.Value == "" {
+		return false
+	}
+	val, ok := verifySessionValue(cookie.Value)
+	return ok && val == "authenticated"
 }
 
 func BookHandler(w http.ResponseWriter, r *http.Request) {
@@ -270,7 +312,7 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 
 	http.SetCookie(w, &http.Cookie{
 		Name:     "staff_session",
-		Value:    "authenticated",
+		Value:    signSessionValue("authenticated"),
 		Path:     "/",
 		HttpOnly: true,
 	})
@@ -289,24 +331,50 @@ func LogoutHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func APIorderHandler(w http.ResponseWriter, r *http.Request) {
-	rows, err := db.Query("SELECT id, customer_name, service_name, quantity, total_cost, status FROM orders")
-	if err != nil {
-		http.Error(w, "Could not load orders: "+err.Error(), http.StatusInternalServerError)
+	staff := isStaff(r)
+	currentUser := getLoggedInCustomer(r)
+
+	if !staff && currentUser == nil {
+		http.Error(w, "Unauthorized: Login required to access API", http.StatusUnauthorized)
 		return
 	}
-	if err := rows.Err(); err != nil {
-		http.Error(w, "Error reading orders: "+err.Error(), http.StatusInternalServerError)
+
+	query := `
+		SELECT o.id, o.user_id, o.customer_name,
+		       COALESCE(NULLIF(o.customer_phone, ''), u.phone, ''),
+		       COALESCE(NULLIF(o.delivery_address, ''), u.address, 'Shop Pickup'),
+		       o.service_name, o.quantity, o.total_cost, o.status
+		FROM orders o
+		LEFT JOIN users u ON o.user_id = u.id
+		WHERE 1=1`
+	var args []interface{}
+
+	if !staff && currentUser != nil {
+		query += " AND (o.user_id = ? OR (o.user_id = 0 AND o.customer_name = ?))"
+		args = append(args, currentUser.ID, currentUser.FullName)
+	}
+
+	query += " ORDER BY o.id DESC"
+
+	rows, err := db.Query(query, args...)
+	if err != nil {
+		http.Error(w, "Could not load orders: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 	defer rows.Close()
 
 	orders := []Order{}
-
 	for rows.Next() {
 		var o Order
-		rows.Scan(&o.ID, &o.CustomerName, &o.ServiceName, &o.Quantity, &o.TotalCost, &o.Status)
-		orders = append(orders, o)
+		if err := rows.Scan(&o.ID, &o.UserID, &o.CustomerName, &o.CustomerPhone, &o.DeliveryAddress, &o.ServiceName, &o.Quantity, &o.TotalCost, &o.Status); err == nil {
+			orders = append(orders, o)
+		}
 	}
+	if err := rows.Err(); err != nil {
+		http.Error(w, "Error reading orders: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(orders)
 }
@@ -398,7 +466,11 @@ func getLoggedInCustomer(r *http.Request) *User {
 	if err != nil || cookie.Value == "" {
 		return nil
 	}
-	userID, err := strconv.Atoi(cookie.Value)
+	rawID, ok := verifySessionValue(cookie.Value)
+	if !ok {
+		return nil
+	}
+	userID, err := strconv.Atoi(rawID)
 	if err != nil {
 		return nil
 	}
@@ -465,7 +537,7 @@ func SignupHandler(w http.ResponseWriter, r *http.Request) {
 
 	http.SetCookie(w, &http.Cookie{
 		Name:     "customer_session",
-		Value:    strconv.FormatInt(userID, 10),
+		Value:    signSessionValue(strconv.FormatInt(userID, 10)),
 		Path:     "/",
 		HttpOnly: true,
 	})
@@ -502,10 +574,10 @@ func CustomerLoginHandler(w http.ResponseWriter, r *http.Request) {
 			MaxAge:   -1,
 			HttpOnly: true,
 		})
-		// Issue the staff session cookie
+		// Issue the HMAC-signed staff session cookie
 		http.SetCookie(w, &http.Cookie{
 			Name:     "staff_session",
-			Value:    "authenticated",
+			Value:    signSessionValue("authenticated"),
 			Path:     "/",
 			HttpOnly: true,
 		})
@@ -537,7 +609,7 @@ func CustomerLoginHandler(w http.ResponseWriter, r *http.Request) {
 
 	http.SetCookie(w, &http.Cookie{
 		Name:     "customer_session",
-		Value:    strconv.Itoa(userID),
+		Value:    signSessionValue(strconv.Itoa(userID)),
 		Path:     "/",
 		HttpOnly: true,
 	})

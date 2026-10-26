@@ -91,16 +91,16 @@ func TestLoginHandler(t *testing.T) {
 		t.Errorf("Expected 303 Redirect for valid login, got %d", recGood.Code)
 	}
 
-	// Check that the staff_session cookie was set
+	// Check that the signed staff_session cookie was set
 	cookies := recGood.Result().Cookies()
 	foundCookie := false
 	for _, c := range cookies {
-		if c.Name == "staff_session" && c.Value == "authenticated" {
+		if c.Name == "staff_session" && c.Value == signSessionValue("authenticated") {
 			foundCookie = true
 		}
 	}
 	if !foundCookie {
-		t.Errorf("Expected staff_session cookie to be set on successful login")
+		t.Errorf("Expected signed staff_session cookie to be set on successful login")
 	}
 }
 
@@ -119,7 +119,7 @@ func TestBookAndAPIOrdersHandler(t *testing.T) {
 
 	reqBook := httptest.NewRequest(http.MethodPost, "/book", strings.NewReader(form.Encode()))
 	reqBook.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	reqBook.AddCookie(&http.Cookie{Name: "staff_session", Value: "authenticated"})
+	reqBook.AddCookie(&http.Cookie{Name: "staff_session", Value: signSessionValue("authenticated")})
 	recBook := httptest.NewRecorder()
 
 	BookHandler(recBook, reqBook)
@@ -128,8 +128,9 @@ func TestBookAndAPIOrdersHandler(t *testing.T) {
 		t.Fatalf("Expected 303 Redirect after booking, got %d", recBook.Code)
 	}
 
-	// Now call GET /api/orders to verify the order was saved and priced properly
+	// Now call GET /api/orders with Staff cookie to verify the order was saved and priced properly
 	reqAPI := httptest.NewRequest(http.MethodGet, "/api/orders", nil)
+	reqAPI.AddCookie(&http.Cookie{Name: "staff_session", Value: signSessionValue("authenticated")})
 	recAPI := httptest.NewRecorder()
 
 	APIorderHandler(recAPI, reqAPI)
@@ -170,7 +171,7 @@ func TestExportCSVHandler(t *testing.T) {
 
 	// Case B: Authenticated staff request should return 200 OK and text/csv
 	reqAuth := httptest.NewRequest(http.MethodGet, "/export-csv", nil)
-	reqAuth.AddCookie(&http.Cookie{Name: "staff_session", Value: "authenticated"})
+	reqAuth.AddCookie(&http.Cookie{Name: "staff_session", Value: signSessionValue("authenticated")})
 	recAuth := httptest.NewRecorder()
 	ExportCSVHandler(recAuth, reqAuth)
 
@@ -206,11 +207,11 @@ func TestReceiptHandler(t *testing.T) {
 		t.Errorf("Expected 403 Forbidden for unauthenticated receipt access, got %d", unauthRR.Code)
 	}
 
-	// 2. Test authorized access (with staff_session cookie) -> should return 200 OK
+	// 2. Test authorized access (with signed staff_session cookie) -> should return 200 OK
 	authReq := httptest.NewRequest(http.MethodGet, "/receipt?id=1", nil)
 	authReq.AddCookie(&http.Cookie{
 		Name:  "staff_session",
-		Value: "authenticated",
+		Value: signSessionValue("authenticated"),
 	})
 	authRR := httptest.NewRecorder()
 	ReceiptHandler(authRR, authReq)
@@ -226,7 +227,7 @@ func TestReceiptHandler(t *testing.T) {
 	notFoundReq := httptest.NewRequest(http.MethodGet, "/receipt?id=999", nil)
 	notFoundReq.AddCookie(&http.Cookie{
 		Name:  "staff_session",
-		Value: "authenticated",
+		Value: signSessionValue("authenticated"),
 	})
 	notFoundRR := httptest.NewRecorder()
 	ReceiptHandler(notFoundRR, notFoundReq)
@@ -282,15 +283,17 @@ func TestCustomerSignupAndLogin(t *testing.T) {
 		t.Fatalf("Expected login redirect 303, got %d", loginRR.Code)
 	}
 
-	// Verify customer_session cookie was issued
+	// Verify signed customer_session cookie was issued
 	foundCookie := false
 	for _, c := range loginRR.Result().Cookies() {
-		if c.Name == "customer_session" && c.Value != "" {
-			foundCookie = true
+		if c.Name == "customer_session" {
+			if val, ok := verifySessionValue(c.Value); ok && val != "" {
+				foundCookie = true
+			}
 		}
 	}
 	if !foundCookie {
-		t.Errorf("Expected customer_session cookie to be set upon login")
+		t.Errorf("Expected valid HMAC-signed customer_session cookie to be set upon login")
 	}
 }
 
@@ -317,7 +320,7 @@ func TestCustomerOrderPrivacy(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	req.AddCookie(&http.Cookie{
 		Name:  "customer_session",
-		Value: strconv.FormatInt(wealthID, 10),
+		Value: signSessionValue(strconv.FormatInt(wealthID, 10)),
 	})
 	rr := httptest.NewRecorder()
 
@@ -347,7 +350,7 @@ func TestUnifiedAdminLogin(t *testing.T) {
 	// Attach an active customer cookie to verify Admin login clears it
 	req.AddCookie(&http.Cookie{
 		Name:  "customer_session",
-		Value: "1",
+		Value: signSessionValue("1"),
 	})
 
 	rr := httptest.NewRecorder()
@@ -358,12 +361,12 @@ func TestUnifiedAdminLogin(t *testing.T) {
 		t.Errorf("Expected status 303 SeeOther, got %d", rr.Code)
 	}
 
-	// 3. Verify staff_session is issued and customer_session is cleared
+	// 3. Verify signed staff_session is issued and customer_session is cleared
 	var hasStaffCookie bool
 	var clearedCustomerCookie bool
 
 	for _, cookie := range rr.Result().Cookies() {
-		if cookie.Name == "staff_session" && cookie.Value == "authenticated" {
+		if cookie.Name == "staff_session" && cookie.Value == signSessionValue("authenticated") {
 			hasStaffCookie = true
 		}
 		if cookie.Name == "customer_session" && cookie.MaxAge < 0 {
@@ -372,7 +375,7 @@ func TestUnifiedAdminLogin(t *testing.T) {
 	}
 
 	if !hasStaffCookie {
-		t.Error("Expected staff_session cookie to be set to 'authenticated'")
+		t.Error("Expected signed staff_session cookie to be set")
 	}
 	if !clearedCustomerCookie {
 		t.Error("Expected existing customer_session cookie to be cleared (MaxAge < 0)")
@@ -436,7 +439,7 @@ func TestSameNameOrderIsolation(t *testing.T) {
 
 	bookReq := httptest.NewRequest(http.MethodPost, "/book", strings.NewReader(form.Encode()))
 	bookReq.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	bookReq.AddCookie(&http.Cookie{Name: "customer_session", Value: "1"})
+	bookReq.AddCookie(&http.Cookie{Name: "customer_session", Value: signSessionValue("1")})
 
 	bookRR := httptest.NewRecorder()
 	BookHandler(bookRR, bookReq)
@@ -447,7 +450,7 @@ func TestSameNameOrderIsolation(t *testing.T) {
 
 	// 3. Customer #2 (also named "John Doe", ID 2) tries to view Order #1's receipt
 	receiptReq := httptest.NewRequest(http.MethodGet, "/receipt?id=1", nil)
-	receiptReq.AddCookie(&http.Cookie{Name: "customer_session", Value: "2"})
+	receiptReq.AddCookie(&http.Cookie{Name: "customer_session", Value: signSessionValue("2")})
 
 	receiptRR := httptest.NewRecorder()
 	ReceiptHandler(receiptRR, receiptReq)
@@ -520,7 +523,7 @@ func TestBookingGatekeeperAndWalkIn(t *testing.T) {
 
 	staffReq := httptest.NewRequest(http.MethodPost, "/book", strings.NewReader(staffForm.Encode()))
 	staffReq.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	staffReq.AddCookie(&http.Cookie{Name: "staff_session", Value: "authenticated"})
+	staffReq.AddCookie(&http.Cookie{Name: "staff_session", Value: signSessionValue("authenticated")})
 	staffRR := httptest.NewRecorder()
 
 	BookHandler(staffRR, staffReq)
@@ -540,5 +543,42 @@ func TestBookingGatekeeperAndWalkIn(t *testing.T) {
 	}
 	if savedAddr != "14 GRA Road, Otukpo" {
 		t.Errorf("Expected delivery address '14 GRA Road, Otukpo', got %s", savedAddr)
+	}
+}
+
+// Test 13: Verify HMAC Cookie Tampering Rejection & /api/orders Authentication
+func TestSessionTamperingAndAPISecurity(t *testing.T) {
+	setupTestDB(t)
+	defer db.Close()
+
+	// Seed User #1 and User #2, plus an order belonging to User #2
+	_, _ = db.Exec(`INSERT INTO users (id, full_name, email, phone, address, password_hash) VALUES 
+		(1, 'User One', 'u1@example.com', '08030000001', 'Addr 1', 'hash1'),
+		(2, 'User Two', 'u2@example.com', '08030000002', 'Addr 2', 'hash2')`)
+	_, _ = db.Exec(`INSERT INTO orders (id, user_id, customer_name, service_name, quantity, total_cost, status) VALUES 
+		(1, 2, 'User Two', 'Wash & Fold', 2, 2000, 'Pending')`)
+
+	// 1. User #1 takes their valid signed cookie ("1.<sig_for_1>") and tampers with the ID in DevTools to "2.<sig_for_1>"
+	validUser1Cookie := signSessionValue("1")
+	parts := strings.SplitN(validUser1Cookie, ".", 2)
+	tamperedCookie := "2." + parts[1]
+
+	tamperedReq := httptest.NewRequest(http.MethodGet, "/receipt?id=1", nil)
+	tamperedReq.AddCookie(&http.Cookie{Name: "customer_session", Value: tamperedCookie})
+	tamperedRR := httptest.NewRecorder()
+
+	ReceiptHandler(tamperedRR, tamperedReq)
+
+	if tamperedRR.Code != http.StatusForbidden {
+		t.Errorf("Expected 403 Forbidden for tampered session cookie, got %d", tamperedRR.Code)
+	}
+
+	// 2. Unauthenticated request to GET /api/orders must be rejected with 401 Unauthorized
+	unauthAPIReq := httptest.NewRequest(http.MethodGet, "/api/orders", nil)
+	unauthAPIRR := httptest.NewRecorder()
+	APIorderHandler(unauthAPIRR, unauthAPIReq)
+
+	if unauthAPIRR.Code != http.StatusUnauthorized {
+		t.Errorf("Expected 401 Unauthorized for unauthenticated /api/orders request, got %d", unauthAPIRR.Code)
 	}
 }
