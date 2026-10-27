@@ -50,6 +50,22 @@ func setupTestDB(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create users table: %v", err)
 	}
+
+	// 3. Create the services table for testing
+	_, err = db.Exec(`CREATE TABLE IF NOT EXISTS services (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		name TEXT UNIQUE NOT NULL,
+		price REAL NOT NULL
+	)`)
+	if err != nil {
+		t.Fatalf("Failed to create services table: %v", err)
+	}
+
+	// Seed a default test service
+	_, err = db.Exec(`INSERT INTO services (name, price) VALUES ('Shirt (Wash and Iron)', 1500)`)
+	if err != nil {
+		t.Fatalf("Failed to seed test service: %v", err)
+	}
 }
 
 // Test 1: Ensure unauthenticated users cannot update order status
@@ -110,8 +126,9 @@ func TestBookAndAPIOrdersHandler(t *testing.T) {
 	setupTestDB(t)
 	defer db.Close()
 
-	// Pick the first service from Services catalog dynamically so the test never breaks if prices change
-	testService := serviceList[0]
+	// Pick the first service from database dynamically
+	services := getServicesFromDB()
+	testService := services[0]
 
 	form := url.Values{}
 	form.Add("customer_name", "Wealth Test")
@@ -149,7 +166,7 @@ func TestBookAndAPIOrdersHandler(t *testing.T) {
 		t.Fatalf("Expected 1 order in database, got %d", len(orders))
 	}
 
-	expectedCost := testService.Price * 3
+	expectedCost := int(testService.Price) * 3
 	if orders[0].CustomerName != "Wealth Test" || orders[0].TotalCost != expectedCost {
 		t.Errorf("Order mismatch: got customer=%s cost=%d, want customer=Wealth Test cost=%d",
 			orders[0].CustomerName, orders[0].TotalCost, expectedCost)
@@ -498,10 +515,12 @@ func TestBookingGatekeeperAndWalkIn(t *testing.T) {
 	setupTestDB(t)
 	defer db.Close()
 
+	services := getServicesFromDB()
+
 	// 1. Unauthenticated guest tries to book -> must redirect to /signup
 	guestForm := url.Values{}
 	guestForm.Add("customer_name", "Anonymous Guest")
-	guestForm.Add("service_name", serviceList[0].Name)
+	guestForm.Add("service_name", services[0].Name)
 	guestForm.Add("quantity", "2")
 
 	guestReq := httptest.NewRequest(http.MethodPost, "/book", strings.NewReader(guestForm.Encode()))
@@ -520,7 +539,7 @@ func TestBookingGatekeeperAndWalkIn(t *testing.T) {
 	staffForm.Add("customer_name", "Chief Walk-In")
 	staffForm.Add("customer_phone", "+2348039998888")
 	staffForm.Add("delivery_address", "14 GRA Road, Otukpo")
-	staffForm.Add("service_name", serviceList[0].Name)
+	staffForm.Add("service_name", services[0].Name)
 	staffForm.Add("quantity", "4")
 
 	staffReq := httptest.NewRequest(http.MethodPost, "/book", strings.NewReader(staffForm.Encode()))

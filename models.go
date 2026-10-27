@@ -6,10 +6,7 @@ import (
 	"strings"
 )
 
-type ServiceItem struct {
-	Name  string
-	Price int
-}
+
 
 // PendingOrder holds a cart securely in a cookie during login/signup
 type PendingOrder struct {
@@ -20,7 +17,7 @@ type PendingOrder struct {
 type PageData struct {
 	ShopName      string
 	Tagline       string
-	Services      []ServiceItem
+	Services      []Service
 	Orders        []Order
 	TotalOrders   int
 	TotalRevenue  int
@@ -65,14 +62,6 @@ type User struct {
 	AccountStatus string `json:"account_status"` // 'active', 'blacklisted'
 }
 
-var serviceList = []ServiceItem{
-	{Name: "Shirt(Wash and Iron)", Price: 500},
-	{Name: "Trouser(Wash and Iron)", Price: 500},
-	{Name: "Suit (2-Piece)", Price: 2500},
-	{Name: "Agbada / Senator", Price: 2000},
-	{Name: "Duvet / Bedsheet", Price: 3000},
-	{Name: "Wash & Fold", Price: 1500},
-}
 
 // WhatsAppURL generates a pre-filled wa.me link if the order has a valid customer phone number.
 func (o Order) WhatsAppURL() string {

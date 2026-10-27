@@ -139,15 +139,14 @@ func BookHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var unitprice int
-	for _, item := range serviceList {
-		if item.Name == service {
-			unitprice = item.Price
-			break
-		}
+	var unitPrice float64
+	err = db.QueryRow("SELECT price FROM services WHERE name = ?", service).Scan(&unitPrice)
+	if err != nil {
+		http.Error(w, "Selected service not found", http.StatusBadRequest)
+		return
 	}
 
-	totalCost := qty * unitprice
+	totalCost := int(float64(qty) * unitPrice)
 
 	insertSQL := `INSERT INTO orders (user_id, customer_name, customer_phone, delivery_address, service_name, quantity, total_cost, status, payment_status) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)`
 	_, err = db.Exec(insertSQL, userID, customer, phone, address, service, qty, totalCost, "Pending", "Unpaid")
@@ -242,7 +241,7 @@ func HomeHandler(w http.ResponseWriter, r *http.Request) {
 	data := PageData{
 		ShopName:     "ApexWash",
 		Tagline:      "Engineered by IB",
-		Services:     serviceList,
+		Services:     getServicesFromDB(),
 		Orders:       orders,
 		TotalOrders:  len(orders),
 		TotalRevenue: totalRevenue,
@@ -784,4 +783,27 @@ func processPendingOrder(w http.ResponseWriter, r *http.Request, user *User) {
 		// Clear the cookie so it doesn't duplicate on the next refresh
 		http.SetCookie(w, &http.Cookie{Name: "pending_order", Value: "", Path: "/", MaxAge: -1, HttpOnly: true})
 	}
+}
+
+// getServicesFromDB fetches the live dynamic price list from SQLite
+func getServicesFromDB() []Service {
+	rows, err := db.Query("SELECT id, name, price FROM services ORDER BY id ASC")
+	if err != nil {
+		return []Service{}
+	}
+	defer rows.Close()
+
+	var services []Service
+	for rows.Next() {
+		var s Service
+		if err := rows.Scan(&s.ID, &s.Name, &s.Price); err == nil {
+			services = append(services, s)
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return []Service{}
+	}
+
+	return services
+
 }
