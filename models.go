@@ -25,6 +25,13 @@ type PageData struct {
 	CustomerError string
 }
 
+// Service represents a dynamically priced laundry item
+type Service struct {
+	ID    int     `json:"id"`
+	Name  string  `json:"name"`
+	Price float64 `json:"price"`
+}
+
 type Order struct {
 	ID              int    `json:"id"`
 	UserID          int    `json:"user_id"`
@@ -45,6 +52,9 @@ type User struct {
 	Phone        string `json:"phone"`
 	Address      string `json:"address"`
 	PasswordHash string `json:"-"`
+	// Enterprise roles and statuses
+	Role          string `json:"role"`           // 'customer', 'staff', 'super_admin'
+	AccountStatus string `json:"account_status"` // 'active', 'blacklisted'
 }
 
 var serviceList = []ServiceItem{
