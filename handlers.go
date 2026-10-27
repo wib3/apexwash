@@ -3,11 +3,13 @@ package main
 import (
 	"crypto/hmac"
 	"crypto/sha256"
+	"database/sql"
 	"encoding/csv"
 	"encoding/hex"
 	"encoding/json"
 	"html/template"
 	"net/http"
+	"net/url"
 	"os"
 	"strconv"
 	"strings"
@@ -148,6 +150,8 @@ func HomeHandler(w http.ResponseWriter, r *http.Request) {
 
 	searchQuery := r.URL.Query().Get("search")
 	statusFilter := r.URL.Query().Get("status")
+	loginError := r.URL.Query().Get("login_error")
+	identifier := r.URL.Query().Get("identifier")
 
 	staff := isStaff(r)
 	currentUser := getLoggedInCustomer(r)
@@ -225,6 +229,8 @@ func HomeHandler(w http.ResponseWriter, r *http.Request) {
 		StatusFilter: statusFilter,
 		IsStaff:      staff,
 		CurrentUser:  currentUser,
+		LoginError:   loginError,
+		Identifier:   identifier,
 	}
 
 	tmpl.Execute(w, data)
@@ -597,7 +603,7 @@ func CustomerLoginHandler(w http.ResponseWriter, r *http.Request) {
 	identifier := strings.TrimSpace(r.FormValue("identifier"))
 	password := r.FormValue("password")
 
-	// 1. Unified Admin Check (Option B: Environment Variables)
+	// 1. Unified Admin Check
 	adminEmail := os.Getenv("ADMIN_EMAIL")
 	if adminEmail == "" {
 		adminEmail = "admin@apexwash.com"
@@ -608,21 +614,8 @@ func CustomerLoginHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if strings.EqualFold(identifier, adminEmail) && password == staffPassword {
-		// Clear any existing customer session so roles don't mix
-		http.SetCookie(w, &http.Cookie{
-			Name:     "customer_session",
-			Value:    "",
-			Path:     "/",
-			MaxAge:   -1,
-			HttpOnly: true,
-		})
-		// Issue the HMAC-signed staff session cookie
-		http.SetCookie(w, &http.Cookie{
-			Name:     "staff_session",
-			Value:    signSessionValue("authenticated"),
-			Path:     "/",
-			HttpOnly: true,
-		})
+		http.SetCookie(w, &http.Cookie{Name: "customer_session", Value: "", Path: "/", MaxAge: -1, HttpOnly: true})
+		http.SetCookie(w, &http.Cookie{Name: "staff_session", Value: signSessionValue("authenticated"), Path: "/", HttpOnly: true})
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 		return
 	}
@@ -630,32 +623,50 @@ func CustomerLoginHandler(w http.ResponseWriter, r *http.Request) {
 		identifier = normalizedPhone
 	}
 
-	// 2. Regular Customer Check (SQLite users table + bcrypt)
+	// 2. Regular Customer Check (with Blacklist and Specific Errors)
 	var userID int
 	var passwordHash string
-	err := db.QueryRow(
-		"SELECT id, password_hash FROM users WHERE email = ? OR phone = ?",
-		identifier, identifier,
-	).Scan(&userID, &passwordHash)
+	var accountStatus string
 
-	if err != nil {
-		http.Error(w, "Invalid email/phone or password", http.StatusUnauthorized)
+	err := db.QueryRow(
+		"SELECT id, password_hash, account_status FROM users WHERE email = ? OR phone = ?",
+		identifier, identifier,
+	).Scan(&userID, &passwordHash, &accountStatus)
+
+	if err == sql.ErrNoRows {
+		// INLINE ERROR: Account not found
+		redirectURL := "/?login_error=Account not found. Please create an account.&identifier=" + url.QueryEscape(identifier)
+		http.Redirect(w, r, redirectURL, http.StatusSeeOther)
+		return
+	} else if err != nil {
+		redirectURL := "/?login_error=Server error. Please try again.&identifier=" + url.QueryEscape(identifier)
+		http.Redirect(w, r, redirectURL, http.StatusSeeOther)
 		return
 	}
 
+	// BLACKLIST GATEKEEPER
+	if accountStatus == "blacklisted" {
+		redirectURL := "/?login_error=This account is suspended. Please contact support.&identifier=" + url.QueryEscape(identifier)
+		http.Redirect(w, r, redirectURL, http.StatusSeeOther)
+		return
+	}
+
+	// 3. Password Verification
 	err = bcrypt.CompareHashAndPassword([]byte(passwordHash), []byte(password))
 	if err != nil {
-		http.Error(w, "Invalid email/phone or password", http.StatusUnauthorized)
+		// INLINE ERROR: Wrong password
+		redirectURL := "/?login_error=Incorrect password. Please try again.&identifier=" + url.QueryEscape(identifier)
+		http.Redirect(w, r, redirectURL, http.StatusSeeOther)
 		return
 	}
 
+	// Success
 	http.SetCookie(w, &http.Cookie{
 		Name:     "customer_session",
 		Value:    signSessionValue(strconv.Itoa(userID)),
 		Path:     "/",
 		HttpOnly: true,
 	})
-
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 

@@ -23,6 +23,8 @@ type PageData struct {
 	IsStaff       bool
 	CurrentUser   *User
 	CustomerError string
+	LoginError    string
+	Identifier    string
 }
 
 // Service represents a dynamically priced laundry item

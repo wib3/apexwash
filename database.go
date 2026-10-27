@@ -21,7 +21,7 @@ func InitDB() {
 	createUsersTable := `
 	CREATE TABLE IF NOT EXISTS users (
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
-		name TEXT NOT NULL,
+		full_name TEXT NOT NULL,
 		email TEXT UNIQUE NOT NULL,
 		password_hash TEXT NOT NULL,
 		phone TEXT,
@@ -46,15 +46,19 @@ func InitDB() {
 		log.Fatalf("Failed to create services table: %v", err)
 	}
 
-	// 3. Restored Orders table
+	// 3. Restored Orders table (WITH ALL REQUIRED COLUMNS)
 	createOrdersTable := `
 	CREATE TABLE IF NOT EXISTS orders (
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
 		user_id INTEGER NOT NULL,
+		customer_name TEXT NOT NULL,
+		customer_phone TEXT,
+		delivery_address TEXT,
 		service_name TEXT NOT NULL,
 		quantity INTEGER NOT NULL,
 		total_cost REAL NOT NULL,
 		status TEXT DEFAULT 'Pending',
+		payment_status TEXT DEFAULT 'Unpaid',
 		created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 		FOREIGN KEY(user_id) REFERENCES users(id)
 	);`
