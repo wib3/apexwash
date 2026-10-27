@@ -4,6 +4,7 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"database/sql"
+	"encoding/base64"
 	"encoding/csv"
 	"encoding/hex"
 	"encoding/json"
@@ -70,8 +71,28 @@ func BookHandler(w http.ResponseWriter, r *http.Request) {
 	staff := isStaff(r)
 	currentUser := getLoggedInCustomer(r)
 
-	// Gatekeeper: If not Staff and not a logged-in Customer, redirect to Signup
+	// Gatekeeper: If not Staff and not a logged-in Customer, save cart in a cookie and redirect to Signup
 	if !staff && currentUser == nil {
+		service := strings.TrimSpace(r.FormValue("service_name"))
+		qtyStr := strings.TrimSpace(r.FormValue("quantity"))
+
+		if service != "" && qtyStr != "" {
+			qty, _ := strconv.Atoi(qtyStr)
+			if qty > 0 {
+				// Package the order into our struct and convert to JSON
+				pending := PendingOrder{ServiceName: service, Quantity: qty}
+				pendingJSON, _ := json.Marshal(pending)
+
+				// Encode to Base64 to make it safe for a browser cookie
+				http.SetCookie(w, &http.Cookie{
+					Name:     "pending_order",
+					Value:    base64.StdEncoding.EncodeToString(pendingJSON),
+					Path:     "/",
+					MaxAge:   3600, // Holds the intent in the browser for 1 hour
+					HttpOnly: true,
+				})
+			}
+		}
 		http.Redirect(w, r, "/signup", http.StatusSeeOther)
 		return
 	}
@@ -590,6 +611,11 @@ func SignupHandler(w http.ResponseWriter, r *http.Request) {
 		HttpOnly: true,
 	})
 
+	// NEW: Fetch the newly created user and process any pending cart
+	var newUser User
+	db.QueryRow("SELECT id, full_name, phone, address FROM users WHERE id = ?", userID).Scan(&newUser.ID, &newUser.FullName, &newUser.Phone, &newUser.Address)
+	processPendingOrder(w, r, &newUser)
+
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
@@ -634,7 +660,6 @@ func CustomerLoginHandler(w http.ResponseWriter, r *http.Request) {
 	).Scan(&userID, &passwordHash, &accountStatus)
 
 	if err == sql.ErrNoRows {
-		// INLINE ERROR: Account not found
 		redirectURL := "/?login_error=Account not found. Please create an account.&identifier=" + url.QueryEscape(identifier)
 		http.Redirect(w, r, redirectURL, http.StatusSeeOther)
 		return
@@ -654,7 +679,6 @@ func CustomerLoginHandler(w http.ResponseWriter, r *http.Request) {
 	// 3. Password Verification
 	err = bcrypt.CompareHashAndPassword([]byte(passwordHash), []byte(password))
 	if err != nil {
-		// INLINE ERROR: Wrong password
 		redirectURL := "/?login_error=Incorrect password. Please try again.&identifier=" + url.QueryEscape(identifier)
 		http.Redirect(w, r, redirectURL, http.StatusSeeOther)
 		return
@@ -667,6 +691,12 @@ func CustomerLoginHandler(w http.ResponseWriter, r *http.Request) {
 		Path:     "/",
 		HttpOnly: true,
 	})
+
+	// NEW: Fetch the logged-in user and process any pending cart
+	var loggedInUser User
+	db.QueryRow("SELECT id, full_name, phone, address FROM users WHERE id = ?", userID).Scan(&loggedInUser.ID, &loggedInUser.FullName, &loggedInUser.Phone, &loggedInUser.Address)
+	processPendingOrder(w, r, &loggedInUser)
+
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
@@ -720,4 +750,38 @@ func normalizeAndValidatePhone(raw string) (string, bool) {
 	}
 
 	return "", false
+}
+
+// processPendingOrder checks for a saved cart and submits it for the newly logged-in user
+func processPendingOrder(w http.ResponseWriter, r *http.Request, user *User) {
+	cookie, err := r.Cookie("pending_order")
+	if err != nil || cookie.Value == "" {
+		return // No pending order found
+	}
+
+	decodedJSON, err := base64.StdEncoding.DecodeString(cookie.Value)
+	if err != nil {
+		return
+	}
+
+	var pending PendingOrder
+	if err := json.Unmarshal(decodedJSON, &pending); err != nil {
+		return
+	}
+
+	var unitPrice float64
+	err = db.QueryRow("SELECT price FROM services WHERE name = ?", pending.ServiceName).Scan(&unitPrice)
+	if err != nil {
+		return
+	}
+
+	totalCost := float64(pending.Quantity) * unitPrice
+
+	insertSQL := `INSERT INTO orders (user_id, customer_name, customer_phone, delivery_address, service_name, quantity, total_cost, status, payment_status) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)`
+	_, err = db.Exec(insertSQL, user.ID, user.FullName, user.Phone, user.Address, pending.ServiceName, pending.Quantity, totalCost, "Pending", "Unpaid")
+
+	if err == nil {
+		// Clear the cookie so it doesn't duplicate on the next refresh
+		http.SetCookie(w, &http.Cookie{Name: "pending_order", Value: "", Path: "/", MaxAge: -1, HttpOnly: true})
+	}
 }

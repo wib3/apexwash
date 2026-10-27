@@ -11,6 +11,12 @@ type ServiceItem struct {
 	Price int
 }
 
+// PendingOrder holds a cart securely in a cookie during login/signup
+type PendingOrder struct {
+	ServiceName string `json:"service_name"`
+	Quantity    int    `json:"quantity"`
+}
+
 type PageData struct {
 	ShopName      string
 	Tagline       string
