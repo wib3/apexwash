@@ -62,6 +62,16 @@ func isStaff(r *http.Request) bool {
 	return ok && val == "authenticated"
 }
 
+func isSuperAdmin(r *http.Request) bool {
+	cookie, err := r.Cookie("super_admin_session")
+	if err == nil {
+		if val, ok := verifySessionValue(cookie.Value); ok && val == "super_admin" {
+			return true
+		}
+	}
+	return false
+}
+
 func BookHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not Allowed", http.StatusMethodNotAllowed)
@@ -79,16 +89,14 @@ func BookHandler(w http.ResponseWriter, r *http.Request) {
 		if service != "" && qtyStr != "" {
 			qty, _ := strconv.Atoi(qtyStr)
 			if qty > 0 {
-				// Package the order into our struct and convert to JSON
 				pending := PendingOrder{ServiceName: service, Quantity: qty}
 				pendingJSON, _ := json.Marshal(pending)
 
-				// Encode to Base64 to make it safe for a browser cookie
 				http.SetCookie(w, &http.Cookie{
 					Name:     "pending_order",
 					Value:    base64.StdEncoding.EncodeToString(pendingJSON),
 					Path:     "/",
-					MaxAge:   3600, // Holds the intent in the browser for 1 hour
+					MaxAge:   3600,
 					HttpOnly: true,
 				})
 			}
@@ -103,7 +111,6 @@ func BookHandler(w http.ResponseWriter, r *http.Request) {
 	userID := 0
 
 	if currentUser != nil {
-		// Logged-in customer: auto-fill from their account profile
 		userID = currentUser.ID
 		customer = currentUser.FullName
 		phone = currentUser.Phone
@@ -111,7 +118,6 @@ func BookHandler(w http.ResponseWriter, r *http.Request) {
 			address = currentUser.Address
 		}
 	} else if staff {
-		// Staff walk-in order: validate phone if provided so WhatsApp button works
 		if phone != "" {
 			validPhone, ok := normalizeAndValidatePhone(phone)
 			if !ok {
@@ -179,7 +185,6 @@ func HomeHandler(w http.ResponseWriter, r *http.Request) {
 	var orders []Order
 	totalRevenue := 0
 
-	// Only query orders if the visitor is Staff OR a logged-in Customer
 	if staff || currentUser != nil {
 		query := `
 			SELECT o.id, o.user_id, o.customer_name,
@@ -193,18 +198,15 @@ func HomeHandler(w http.ResponseWriter, r *http.Request) {
 		var args []interface{}
 
 		if staff {
-			// Staff can search across all customers
 			if searchQuery != "" {
 				query += " AND o.customer_name LIKE ?"
 				args = append(args, "%"+searchQuery+"%")
 			}
 		} else if currentUser != nil {
-			// Logged-in customer sees orders linked to their user_id (or legacy v2.0 orders with user_id=0 matching their name)
 			query += " AND (o.user_id = ? OR (o.user_id = 0 AND o.customer_name = ?))"
 			args = append(args, currentUser.ID, currentUser.FullName)
 		}
 
-		// Both Staff and Customers can filter by workflow status
 		if statusFilter != "" {
 			query += " AND o.status = ?"
 			args = append(args, statusFilter)
@@ -248,6 +250,7 @@ func HomeHandler(w http.ResponseWriter, r *http.Request) {
 		SearchQuery:  searchQuery,
 		StatusFilter: statusFilter,
 		IsStaff:      staff,
+		IsSuperAdmin: isSuperAdmin(r),
 		CurrentUser:  currentUser,
 		LoginError:   loginError,
 		Identifier:   identifier,
@@ -392,6 +395,13 @@ func LogoutHandler(w http.ResponseWriter, r *http.Request) {
 		MaxAge:   -1,
 		HttpOnly: true,
 	})
+	http.SetCookie(w, &http.Cookie{
+		Name:     "super_admin_session",
+		Value:    "",
+		Path:     "/",
+		MaxAge:   -1,
+		HttpOnly: true,
+	})
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
@@ -511,7 +521,6 @@ func ReceiptHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Security Check: Only Staff or the Customer who owns the order can view the receipt
 	staff := isStaff(r)
 	currentUser := getLoggedInCustomer(r)
 	ownsOrder := currentUser != nil && (o.UserID == currentUser.ID || (o.UserID == 0 && o.CustomerName == currentUser.FullName))
@@ -550,9 +559,7 @@ func getLoggedInCustomer(r *http.Request) *User {
 	return &u
 }
 
-// SignupHandler registers a new customer account with a bcrypt-hashed password
 func SignupHandler(w http.ResponseWriter, r *http.Request) {
-	// 1. If GET request, render the dedicated Signup page
 	if r.Method == http.MethodGet {
 		tmpl, err := template.ParseFiles("templates/signup.html")
 		if err != nil {
@@ -563,7 +570,6 @@ func SignupHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 2. Only allow POST for form submission
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -610,7 +616,6 @@ func SignupHandler(w http.ResponseWriter, r *http.Request) {
 		HttpOnly: true,
 	})
 
-	// NEW: Fetch the newly created user and process any pending cart
 	var newUser User
 	db.QueryRow("SELECT id, full_name, phone, address FROM users WHERE id = ?", userID).Scan(&newUser.ID, &newUser.FullName, &newUser.Phone, &newUser.Address)
 	processPendingOrder(w, r, &newUser)
@@ -618,7 +623,6 @@ func SignupHandler(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
-// CustomerLoginHandler authenticates a customer by phone or email + password
 func CustomerLoginHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -628,7 +632,7 @@ func CustomerLoginHandler(w http.ResponseWriter, r *http.Request) {
 	identifier := strings.TrimSpace(r.FormValue("identifier"))
 	password := r.FormValue("password")
 
-	// 1. Unified Admin Check
+	// 1. Unified Master Admin Check
 	adminEmail := os.Getenv("ADMIN_EMAIL")
 	if adminEmail == "" {
 		adminEmail = "admin@apexwash.com"
@@ -641,6 +645,7 @@ func CustomerLoginHandler(w http.ResponseWriter, r *http.Request) {
 	if strings.EqualFold(identifier, adminEmail) && password == staffPassword {
 		http.SetCookie(w, &http.Cookie{Name: "customer_session", Value: "", Path: "/", MaxAge: -1, HttpOnly: true})
 		http.SetCookie(w, &http.Cookie{Name: "staff_session", Value: signSessionValue("authenticated"), Path: "/", HttpOnly: true})
+		http.SetCookie(w, &http.Cookie{Name: "super_admin_session", Value: signSessionValue("super_admin"), Path: "/", HttpOnly: true})
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 		return
 	}
@@ -648,15 +653,16 @@ func CustomerLoginHandler(w http.ResponseWriter, r *http.Request) {
 		identifier = normalizedPhone
 	}
 
-	// 2. Regular Customer Check (with Blacklist and Specific Errors)
+	// 2. Database Account Check
 	var userID int
 	var passwordHash string
+	var role string
 	var accountStatus string
 
 	err := db.QueryRow(
-		"SELECT id, password_hash, account_status FROM users WHERE email = ? OR phone = ?",
+		"SELECT id, password_hash, COALESCE(role, 'customer'), COALESCE(account_status, 'active') FROM users WHERE email = ? OR phone = ?",
 		identifier, identifier,
-	).Scan(&userID, &passwordHash, &accountStatus)
+	).Scan(&userID, &passwordHash, &role, &accountStatus)
 
 	if err == sql.ErrNoRows {
 		redirectURL := "/?login_error=Account not found. Please create an account.&identifier=" + url.QueryEscape(identifier)
@@ -683,7 +689,23 @@ func CustomerLoginHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Success
+	// 4. Role-Based Session Assignment
+	switch role {
+	case "super_admin":
+		http.SetCookie(w, &http.Cookie{Name: "customer_session", Value: "", Path: "/", MaxAge: -1, HttpOnly: true})
+		http.SetCookie(w, &http.Cookie{Name: "staff_session", Value: signSessionValue("authenticated"), Path: "/", HttpOnly: true})
+		http.SetCookie(w, &http.Cookie{Name: "super_admin_session", Value: signSessionValue("super_admin"), Path: "/", HttpOnly: true})
+		http.Redirect(w, r, "/", http.StatusSeeOther)
+		return
+	case "staff":
+		http.SetCookie(w, &http.Cookie{Name: "customer_session", Value: "", Path: "/", MaxAge: -1, HttpOnly: true})
+		http.SetCookie(w, &http.Cookie{Name: "super_admin_session", Value: "", Path: "/", MaxAge: -1, HttpOnly: true})
+		http.SetCookie(w, &http.Cookie{Name: "staff_session", Value: signSessionValue("authenticated"), Path: "/", HttpOnly: true})
+		http.Redirect(w, r, "/", http.StatusSeeOther)
+		return
+	}
+
+	// Regular Customer Success
 	http.SetCookie(w, &http.Cookie{
 		Name:     "customer_session",
 		Value:    signSessionValue(strconv.Itoa(userID)),
@@ -691,7 +713,6 @@ func CustomerLoginHandler(w http.ResponseWriter, r *http.Request) {
 		HttpOnly: true,
 	})
 
-	// NEW: Fetch the logged-in user and process any pending cart
 	var loggedInUser User
 	db.QueryRow("SELECT id, full_name, phone, address FROM users WHERE id = ?", userID).Scan(&loggedInUser.ID, &loggedInUser.FullName, &loggedInUser.Phone, &loggedInUser.Address)
 	processPendingOrder(w, r, &loggedInUser)
@@ -699,7 +720,6 @@ func CustomerLoginHandler(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
-// CustomerLogoutHandler clears the customer_session cookie
 func CustomerLogoutHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Redirect(w, r, "/", http.StatusSeeOther)
@@ -717,8 +737,6 @@ func CustomerLogoutHandler(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
-// normalizeAndValidatePhone cleans a Nigerian phone number to a standard 11-digit
-// format (e.g. "08031234567") and validates its length, digits, and network prefix.
 func normalizeAndValidatePhone(raw string) (string, bool) {
 	cleaned := strings.TrimSpace(raw)
 	cleaned = strings.ReplaceAll(cleaned, " ", "")
@@ -751,11 +769,10 @@ func normalizeAndValidatePhone(raw string) (string, bool) {
 	return "", false
 }
 
-// processPendingOrder checks for a saved cart and submits it for the newly logged-in user
 func processPendingOrder(w http.ResponseWriter, r *http.Request, user *User) {
 	cookie, err := r.Cookie("pending_order")
 	if err != nil || cookie.Value == "" {
-		return // No pending order found
+		return
 	}
 
 	decodedJSON, err := base64.StdEncoding.DecodeString(cookie.Value)
@@ -780,12 +797,10 @@ func processPendingOrder(w http.ResponseWriter, r *http.Request, user *User) {
 	_, err = db.Exec(insertSQL, user.ID, user.FullName, user.Phone, user.Address, pending.ServiceName, pending.Quantity, totalCost, "Pending", "Unpaid")
 
 	if err == nil {
-		// Clear the cookie so it doesn't duplicate on the next refresh
 		http.SetCookie(w, &http.Cookie{Name: "pending_order", Value: "", Path: "/", MaxAge: -1, HttpOnly: true})
 	}
 }
 
-// getServicesFromDB fetches the live dynamic price list from SQLite
 func getServicesFromDB() []Service {
 	rows, err := db.Query("SELECT id, name, price FROM services ORDER BY id ASC")
 	if err != nil {
@@ -805,5 +820,134 @@ func getServicesFromDB() []Service {
 	}
 
 	return services
+}
 
+// AdminDashboardHandler renders the Super Admin control center
+func AdminDashboardHandler(w http.ResponseWriter, r *http.Request) {
+	if !isSuperAdmin(r) {
+		http.Error(w, "Forbidden: Super Admin access required", http.StatusForbidden)
+		return
+	}
+
+	rows, err := db.Query("SELECT id, full_name, email, phone, address, COALESCE(role, 'customer'), COALESCE(account_status, 'active') FROM users ORDER BY id DESC")
+	if err != nil {
+		http.Error(w, "Failed to load users: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+	defer rows.Close()
+
+	var users []User
+	for rows.Next() {
+		var u User
+		if err := rows.Scan(&u.ID, &u.FullName, &u.Email, &u.Phone, &u.Address, &u.Role, &u.AccountStatus); err == nil {
+			users = append(users, u)
+		}
+	}
+	if err := rows.Err(); err != nil {
+		http.Error(w, "Error reading users list: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	data := AdminDashboardData{
+		ShopName: "ApexWash",
+		Services: getServicesFromDB(),
+		Users:    users,
+		Message:  r.URL.Query().Get("msg"),
+	}
+
+	tmpl, err := template.ParseFiles("templates/admin.html")
+	if err != nil {
+		http.Error(w, "Failed to load admin template: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+	err = tmpl.Execute(w, data)
+	if err != nil {
+		http.Error(w, "Failed to render admin template: "+err.Error(), http.StatusInternalServerError)
+	}
+}
+
+// SaveServiceHandler adds a new service or updates an existing service's price
+func SaveServiceHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	if !isSuperAdmin(r) {
+		http.Error(w, "Forbidden: Super Admin access required", http.StatusForbidden)
+		return
+	}
+
+	name := strings.TrimSpace(r.FormValue("name"))
+	priceStr := strings.TrimSpace(r.FormValue("price"))
+	price, err := strconv.ParseFloat(priceStr, 64)
+	if name == "" || err != nil || price <= 0 {
+		http.Error(w, "Valid service name and positive price required", http.StatusBadRequest)
+		return
+	}
+
+	res, err := db.Exec("UPDATE services SET price = ? WHERE name = ?", price, name)
+	if err != nil {
+		http.Error(w, "Failed to update service", http.StatusInternalServerError)
+		return
+	}
+
+	rowsAffected, _ := res.RowsAffected()
+	if rowsAffected == 0 {
+		_, err = db.Exec("INSERT INTO services (name, price) VALUES (?, ?)", name, price)
+		if err != nil {
+			http.Error(w, "Failed to insert service", http.StatusInternalServerError)
+			return
+		}
+	}
+
+	http.Redirect(w, r, "/admin?msg=Service+pricing+updated", http.StatusSeeOther)
+}
+
+// DeleteServiceHandler removes a service from the catalog
+func DeleteServiceHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	if !isSuperAdmin(r) {
+		http.Error(w, "Forbidden: Super Admin access required", http.StatusForbidden)
+		return
+	}
+
+	serviceID := r.FormValue("service_id")
+	_, _ = db.Exec("DELETE FROM services WHERE id = ?", serviceID)
+	http.Redirect(w, r, "/admin?msg=Service+removed", http.StatusSeeOther)
+}
+
+// UpdateUserAccessHandler lets Super Admin change a user's role or blacklist/activate them
+func UpdateUserAccessHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	if !isSuperAdmin(r) {
+		http.Error(w, "Forbidden: Super Admin access required", http.StatusForbidden)
+		return
+	}
+
+	userID := r.FormValue("user_id")
+	role := r.FormValue("role")
+	status := r.FormValue("account_status")
+
+	if role != "customer" && role != "staff" && role != "super_admin" {
+		http.Error(w, "Invalid role", http.StatusBadRequest)
+		return
+	}
+	if status != "active" && status != "blacklisted" {
+		http.Error(w, "Invalid account status", http.StatusBadRequest)
+		return
+	}
+
+	_, err := db.Exec("UPDATE users SET role = ?, account_status = ? WHERE id = ?", role, status, userID)
+	if err != nil {
+		http.Error(w, "Failed to update user access", http.StatusInternalServerError)
+		return
+	}
+
+	http.Redirect(w, r, "/admin?msg=User+permissions+updated", http.StatusSeeOther)
 }

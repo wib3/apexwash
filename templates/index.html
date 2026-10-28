@@ -15,6 +15,11 @@
     <div>
         {{ if .IsStaff }}
         <span style="color: #166534; font-weight: bold; font-size: 0.9rem;">🔓 Staff Mode Active</span>
+        {{ if .IsSuperAdmin }}
+        <a href="/admin"
+            style="text-decoration: none; padding: 6px 12px; background: #4f46e5; color: white; border-radius: 6px; font-size: 0.85rem; font-weight: bold; margin-left: 10px;">⚡
+            Super Admin Panel</a>
+        {{ end }}
         <a href="/export-csv"
             style="text-decoration: none; padding: 6px 12px; background: #10b981; color: white; border-radius: 6px; font-size: 0.85rem; font-weight: bold;">📥
             Download CSV Report</a>
@@ -46,10 +51,11 @@
         <div class="card"
             style="max-width: 420px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 10px; background: white; box-shadow: 0 2px 8px rgba(0,0,0,0.04);">
             <h3 style="margin-top: 0; text-align: center;">🔑 Account Login</h3>
-            
+
             <!-- NEW: Inline Error Box -->
             {{ if .LoginError }}
-            <div style="background-color: #fee2e2; color: #991b1b; padding: 10px; border-radius: 6px; margin-bottom: 16px; text-align: center; font-size: 0.9rem; font-weight: bold; border: 1px solid #f87171;">
+            <div
+                style="background-color: #fee2e2; color: #991b1b; padding: 10px; border-radius: 6px; margin-bottom: 16px; text-align: center; font-size: 0.9rem; font-weight: bold; border: 1px solid #f87171;">
                 ⚠️ {{ .LoginError }}
             </div>
             {{ end }}
@@ -58,7 +64,8 @@
                 <div style="margin-bottom: 12px;">
                     <label style="display: block; margin-bottom: 4px; font-weight: 600; font-size: 0.9rem;">Email or
                         Phone Number:</label>
-                    <input type="text" name="identifier" value="{{ .Identifier }}" placeholder="Email or WhatsApp number" required
+                    <input type="text" name="identifier" value="{{ .Identifier }}"
+                        placeholder="Email or WhatsApp number" required
                         style="width: 100%; padding: 10px; box-sizing: border-box; border: 1px solid #cbd5e1; border-radius: 6px;">
                 </div>
                 <div style="margin-bottom: 16px;">
@@ -111,8 +118,8 @@
         </div>
         <div>
             <label>Delivery Address:</label>
-            <input type="text" name="delivery_address" value="{{.CurrentUser.Address}}"
-                placeholder="Delivery Address" required>
+            <input type="text" name="delivery_address" value="{{.CurrentUser.Address}}" placeholder="Delivery Address"
+                required>
         </div>
         {{ else }}
         <!-- Staff Walk-in Booking Inputs -->
@@ -146,10 +153,12 @@
         <button type="submit">Submit Order</button>
     </form>
     {{ else }}
-    <div style="padding: 20px; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; text-align: center; margin-bottom: 24px;">
+    <div
+        style="padding: 20px; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; text-align: center; margin-bottom: 24px;">
         <p style="margin: 0 0 12px 0; color: #334155; font-size: 1rem;">
             🔒 <strong>Please log in above or create an account to book a laundry order.</strong><br>
-            <span style="font-size: 0.9rem; color: #64748b;">Track your live laundry status, print digital receipts, and receive WhatsApp updates.</span>
+            <span style="font-size: 0.9rem; color: #64748b;">Track your live laundry status, print digital receipts, and
+                receive WhatsApp updates.</span>
         </p>
         <a href="/signup"
             style="display: inline-block; padding: 10px 18px; background: #0f766e; color: white; text-decoration: none; border-radius: 6px; font-weight: bold;">
@@ -191,9 +200,12 @@
                 <strong>#{{.ID}} {{.CustomerName}}</strong> - {{.ServiceName}} (Qty: {{.Quantity}} | Total:
                 ₦{{.TotalCost}} | Status: <em>{{.Status}}</em> | 📍 {{.DeliveryAddress}})
                 {{ if eq .PaymentStatus "Paid" }}
-                <span style="margin-left: 6px; padding: 3px 8px; background: #dcfce7; color: #166534; border-radius: 999px; font-size: 0.75rem; font-weight: bold;">PAID &#10003;</span>
+                <span
+                    style="margin-left: 6px; padding: 3px 8px; background: #dcfce7; color: #166534; border-radius: 999px; font-size: 0.75rem; font-weight: bold;">PAID
+                    &#10003;</span>
                 {{ else }}
-                <span style="margin-left: 6px; padding: 3px 8px; background: #fee2e2; color: #991b1b; border-radius: 999px; font-size: 0.75rem; font-weight: bold;">UNPAID</span>
+                <span
+                    style="margin-left: 6px; padding: 3px 8px; background: #fee2e2; color: #991b1b; border-radius: 999px; font-size: 0.75rem; font-weight: bold;">UNPAID</span>
                 {{ end }}
                 <a href="/receipt?id={{.ID}}"
                     style="margin-left: 8px; padding: 4px 10px; background: #e0f2fe; color: #0369a1; text-decoration: none; border-radius: 4px; font-size: 0.8rem; font-weight: bold;">🧾
@@ -211,9 +223,11 @@
                 <form action="/toggle-payment" method="post" style="margin: 0;">
                     <input type="hidden" name="order_id" value="{{.ID}}">
                     {{ if eq .PaymentStatus "Paid" }}
-                    <button type="submit" style="background-color: #64748b; font-size: 0.85rem; padding: 6px 10px;">↩️ Mark Unpaid</button>
+                    <button type="submit" style="background-color: #64748b; font-size: 0.85rem; padding: 6px 10px;">↩️
+                        Mark Unpaid</button>
                     {{ else }}
-                    <button type="submit" style="background-color: #0284c7; font-size: 0.85rem; padding: 6px 10px;">💳 Mark Paid</button>
+                    <button type="submit" style="background-color: #0284c7; font-size: 0.85rem; padding: 6px 10px;">💳
+                        Mark Paid</button>
                     {{ end }}
                 </form>
 

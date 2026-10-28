@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Super Admin - {{ .ShopName }}</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+
+<body style="background-color: #f8fafc; font-family: sans-serif; margin: 0; padding: 0;">
+    <div style="max-width: 1100px; margin: 0 auto; padding: 20px;">
+        <!-- Header -->
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #e2e8f0; padding-bottom: 15px; margin-bottom: 24px;">
+            <h1 style="margin: 0; color: #4f46e5;">⚡ Super Admin Dashboard</h1>
+            <a href="/" style="padding: 10px 16px; background: #64748b; color: white; text-decoration: none; border-radius: 6px; font-weight: bold;">&larr; Back to Home</a>
+        </div>
+
+        <!-- Success Message Alert -->
+        {{ if .Message }}
+        <div style="background-color: #dcfce7; color: #166534; padding: 12px 20px; border-radius: 6px; margin-bottom: 24px; font-weight: bold; border: 1px solid #bbf7d0;">
+            ✅ {{ .Message }}
+        </div>
+        {{ end }}
+
+        <div style="display: flex; gap: 24px; flex-wrap: wrap; align-items: flex-start;">
+
+            <!-- LEFT COLUMN: Prices & Services -->
+            <div style="flex: 1; min-width: 320px; background: white; padding: 24px; border-radius: 10px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
+                <h2 style="margin-top: 0; color: #1e293b; font-size: 1.25rem;">🧺 Manage Prices</h2>
+
+                <!-- Add/Update Service Form -->
+                <form action="/admin/service/save" method="POST" style="margin-bottom: 24px; padding: 16px; background: #f1f5f9; border-radius: 8px; border: 1px solid #e2e8f0;">
+                    <h4 style="margin-top: 0; margin-bottom: 12px; color: #334155;">Add or Update Service</h4>
+                    <input type="text" name="name" placeholder="Service Name (e.g. Bed Sheet)" required style="width: 100%; box-sizing: border-box; margin-bottom: 12px; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px;">
+                    <input type="number" name="price" placeholder="Price in ₦" required style="width: 100%; box-sizing: border-box; margin-bottom: 12px; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px;">
+                    <button type="submit" style="background: #10b981; color: white; border: none; padding: 10px; border-radius: 6px; cursor: pointer; width: 100%; font-weight: bold; font-size: 0.95rem;">Save Service</button>
+                    <small style="display: block; margin-top: 8px; color: #64748b; font-size: 0.8rem;">* If the name already exists, its price will be updated.</small>
+                </form>
+
+                <!-- List Current Services -->
+                <ul style="list-style: none; padding: 0; margin: 0;">
+                    {{ range .Services }}
+                    <li style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #e2e8f0;">
+                        <span style="color: #334155; font-size: 0.95rem;"><strong>{{ .Name }}</strong> - ₦{{ .Price }}</span>
+                        <form action="/admin/service/delete" method="POST" style="margin: 0;">
+                            <input type="hidden" name="service_id" value="{{ .ID }}">
+                            <button type="submit" style="background: #ef4444; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; font-weight: bold;">Delete</button>
+                        </form>
+                    </li>
+                    {{ end }}
+                </ul>
+            </div>
+
+            <!-- RIGHT COLUMN: User Access & Roles -->
+            <div style="flex: 2; min-width: 500px; background: white; padding: 24px; border-radius: 10px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
+                <h2 style="margin-top: 0; color: #1e293b; font-size: 1.25rem;">👥 User &amp; Staff Access</h2>
+                <div style="overflow-x: auto;">
+                    <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.9rem;">
+                        <thead>
+                            <tr style="background: #f8fafc;">
+                                <th style="padding: 12px; border-bottom: 2px solid #cbd5e1; color: #475569;">Name</th>
+                                <th style="padding: 12px; border-bottom: 2px solid #cbd5e1; color: #475569;">Contact</th>
+                                <th style="padding: 12px; border-bottom: 2px solid #cbd5e1; color: #475569;">Permissions &amp; Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {{ range .Users }}
+                            <tr style="border-bottom: 1px solid #e2e8f0;">
+                                <td style="padding: 12px; color: #1e293b;"><strong>{{ .FullName }}</strong></td>
+                                <td style="padding: 12px; color: #334155;">{{ .Phone }}<br><small style="color: #64748b;">{{ .Email }}</small></td>
+                                <td style="padding: 12px;">
+                                    <form action="/admin/user/update" method="POST" style="display: flex; gap: 8px; align-items: center; margin: 0;">
+                                        <input type="hidden" name="user_id" value="{{ .ID }}">
+
+                                        <select name="role" style="padding: 6px; border: 1px solid #cbd5e1; border-radius: 4px;">
+                                            {{ if eq .Role "customer" }}
+                                            <option value="customer" selected>Customer</option>
+                                            {{ else }}
+                                            <option value="customer">Customer</option>
+                                            {{ end }}
+
+                                            {{ if eq .Role "staff" }}
+                                            <option value="staff" selected>Staff</option>
+                                            {{ else }}
+                                            <option value="staff">Staff</option>
+                                            {{ end }}
+
+                                            {{ if eq .Role "super_admin" }}
+                                            <option value="super_admin" selected>Super Admin</option>
+                                            {{ else }}
+                                            <option value="super_admin">Super Admin</option>
+                                            {{ end }}
+                                        </select>
+
+                                        {{ if eq .AccountStatus "blacklisted" }}
+                                        <select name="account_status" style="padding: 6px; border: 1px solid #f87171; border-radius: 4px; background-color: #fee2e2; color: #991b1b; font-weight: bold;">
+                                            <option value="active">Active</option>
+                                            <option value="blacklisted" selected>Blacklisted</option>
+                                        </select>
+                                        {{ else }}
+                                        <select name="account_status" style="padding: 6px; border: 1px solid #cbd5e1; border-radius: 4px;">
+                                            <option value="active" selected>Active</option>
+                                            <option value="blacklisted">Blacklisted</option>
+                                        </select>
+                                        {{ end }}
+
+                                        <button type="submit" style="background: #3b82f6; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: bold;">Update</button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {{ end }}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</body>
+
+</html>

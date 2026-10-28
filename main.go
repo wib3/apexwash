@@ -25,6 +25,10 @@ func main() {
 	http.HandleFunc("/logout-customer", CustomerLogoutHandler)
 	http.HandleFunc("/signup", SignupHandler)
 	http.HandleFunc("/toggle-payment", TogglePaymentHandler)
+	http.HandleFunc("/admin", AdminDashboardHandler)
+	http.HandleFunc("/admin/service/save", SaveServiceHandler)
+	http.HandleFunc("/admin/service/delete", DeleteServiceHandler)
+	http.HandleFunc("/admin/user/update", UpdateUserAccessHandler)
 
 	port := os.Getenv("PORT")
 	if port == "" {

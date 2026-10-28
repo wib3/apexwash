@@ -6,8 +6,6 @@ import (
 	"strings"
 )
 
-
-
 // PendingOrder holds a cart securely in a cookie during login/signup
 type PendingOrder struct {
 	ServiceName string `json:"service_name"`
@@ -24,10 +22,19 @@ type PageData struct {
 	SearchQuery   string
 	StatusFilter  string
 	IsStaff       bool
+	IsSuperAdmin  bool
 	CurrentUser   *User
 	CustomerError string
 	LoginError    string
 	Identifier    string
+}
+
+// AdminDashboardData holds all data for the /admin control center
+type AdminDashboardData struct {
+	ShopName string
+	Services []Service
+	Users    []User
+	Message  string
 }
 
 // Service represents a dynamically priced laundry item
@@ -61,7 +68,6 @@ type User struct {
 	Role          string `json:"role"`           // 'customer', 'staff', 'super_admin'
 	AccountStatus string `json:"account_status"` // 'active', 'blacklisted'
 }
-
 
 // WhatsAppURL generates a pre-filled wa.me link if the order has a valid customer phone number.
 func (o Order) WhatsAppURL() string {

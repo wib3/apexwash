@@ -30,6 +30,8 @@ func setupTestDB(t *testing.T) {
 		delivery_address TEXT DEFAULT '',
 		service_name TEXT NOT NULL,
 		quantity INTEGER NOT NULL,
+		role TEXT DEFAULT 'customer',
+		account_status TEXT DEFAULT 'active',
 		total_cost INTEGER NOT NULL,
 		status TEXT DEFAULT 'Pending',
 		payment_status TEXT DEFAULT 'Unpaid'
