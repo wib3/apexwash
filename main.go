@@ -16,7 +16,7 @@ func main() {
 	http.HandleFunc("/book", BookHandler)
 	http.HandleFunc("/update-status", UpdateStatusHandler)
 	http.HandleFunc("/delete-order", DeleteOrderHandler)
-	http.HandleFunc("/login", LoginHandler)
+	http.HandleFunc("/login", LoginGetHandler)
 	http.HandleFunc("/logout", LogoutHandler)
 	http.HandleFunc("/api/orders", APIorderHandler)
 	http.HandleFunc("/export-csv", ExportCSVHandler)

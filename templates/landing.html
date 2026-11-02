@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="en" style="scroll-behavior: smooth; width: 100%; margin: 0; padding: 0;">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ .ShopName }} - {{ .Tagline }}</title>
+    <!-- Removed /static/style.css so dashboard rules don't squish the landing page! -->
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1d4ed8;
+            --accent: #10b981;
+            --dark: #0f172a;
+            --slate: #475569;
+            --light: #f8fafc;
+        }
+        * {
+            box-sizing: border-box;
+        }
+        html, body {
+            width: 100% !important;
+            max-width: 100% !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: var(--light);
+            color: var(--dark);
+            line-height: 1.6;
+            overflow-x: hidden;
+            display: block !important;
+        }
+
+        /* Scroll-Reveal Animation Engine */
+        .reveal {
+            opacity: 0;
+            transform: translateY(32px);
+            transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1), transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .reveal.active {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Sticky Glass Navbar */
+        .navbar {
+            background: rgba(255, 255, 255, 0.88);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-bottom: 1px solid #e2e8f0;
+            padding: 16px 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            width: 100%;
+        }
+        .nav-container {
+            max-width: 1150px;
+            width: 100%;
+            margin: 0 auto;
+            padding: 0 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        .brand {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: var(--primary);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .brand span {
+            font-size: 0.75rem;
+            background: #dbeafe;
+            color: var(--primary-dark);
+            padding: 3px 10px;
+            border-radius: 999px;
+            font-weight: 700;
+        }
+        .nav-links {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .nav-links a {
+            text-decoration: none;
+            color: var(--slate);
+            font-weight: 600;
+            font-size: 0.95rem;
+            transition: color 0.2s ease;
+        }
+        .nav-links a:hover {
+            color: var(--primary);
+        }
+        .btn-outline {
+            padding: 9px 18px;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            color: var(--dark) !important;
+            background: white;
+            transition: all 0.2s ease;
+        }
+        .btn-outline:hover {
+            border-color: var(--primary);
+            color: var(--primary) !important;
+        }
+        .btn-primary {
+            padding: 10px 20px;
+            background: var(--primary);
+            color: white !important;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            transition: transform 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+        }
+        .btn-primary:hover {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 15px -3px rgba(37, 99, 235, 0.3);
+        }
+
+        /* Hero + Quick Book Split */
+        .hero-wrapper {
+            background: radial-gradient(circle at top right, #dbeafe 0%, #f8fafc 55%);
+            border-bottom: 1px solid #e2e8f0;
+            width: 100%;
+        }
+        .hero {
+            max-width: 1150px;
+            width: 100%;
+            margin: 0 auto;
+            padding: 72px 24px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 48px;
+            align-items: center;
+        }
+        .hero-text h1 {
+            font-size: 3rem;
+            line-height: 1.12;
+            margin: 0 0 18px 0;
+            color: var(--dark);
+            letter-spacing: -0.02em;
+        }
+        .hero-text p {
+            font-size: 1.12rem;
+            color: var(--slate);
+            margin-bottom: 28px;
+        }
+        .hero-badges {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-top: 28px;
+        }
+        .badge-pill {
+            background: white;
+            border: 1px solid #e2e8f0;
+            padding: 6px 14px;
+            border-radius: 999px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--slate);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.03);
+        }
+
+        /* Quick Book Card */
+        .action-card {
+            background: white;
+            padding: 32px;
+            border-radius: 16px;
+            box-shadow: 0 20px 35px -10px rgba(15, 23, 42, 0.1);
+            border: 1px solid #e2e8f0;
+        }
+        .action-card h3 {
+            margin-top: 0;
+            margin-bottom: 6px;
+            font-size: 1.4rem;
+        }
+        .form-group {
+            margin-bottom: 18px;
+        }
+        .form-group label {
+            display: block;
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: var(--slate);
+            margin-bottom: 6px;
+        }
+        .form-control {
+            width: 100%;
+            padding: 12px 14px;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+        }
+        .estimate-banner {
+            background: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            color: #166534;
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-weight: 700;
+            font-size: 1rem;
+            margin-bottom: 18px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        /* Sections & Interactive Cards */
+        .section-wrapper {
+            width: 100%;
+        }
+        .section {
+            max-width: 1150px;
+            width: 100%;
+            margin: 0 auto;
+            padding: 72px 24px;
+        }
+        .section-alt {
+            background: #f1f5f9;
+            border-top: 1px solid #e2e8f0;
+            border-bottom: 1px solid #e2e8f0;
+            width: 100%;
+        }
+        .section-header {
+            text-align: center;
+            margin-bottom: 48px;
+        }
+        .section-header h2 {
+            font-size: 2.2rem;
+            margin: 0 0 10px 0;
+            letter-spacing: -0.01em;
+        }
+        .card-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 24px;
+        }
+        .pricing-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+            gap: 20px;
+        }
+        .feature-card {
+            background: white;
+            padding: 28px;
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+        }
+        .feature-card:hover {
+            transform: translateY(-6px);
+            box-shadow: 0 14px 25px -5px rgba(15, 23, 42, 0.08);
+            border-color: #93c5fd;
+        }
+        .step-badge {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            background: #dbeafe;
+            color: var(--primary-dark);
+            font-weight: 800;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 16px;
+            font-size: 1.1rem;
+        }
+        .feature-card h4 {
+            margin: 0 0 8px 0;
+            font-size: 1.15rem;
+            color: var(--dark);
+        }
+        .price-tag {
+            font-size: 1.65rem;
+            font-weight: 800;
+            color: var(--primary);
+        }
+        .price-unit {
+            font-size: 0.85rem;
+            color: var(--slate);
+            font-weight: 500;
+        }
+
+        /* Trust & Guarantee Banner */
+        .trust-banner {
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            color: white;
+            padding: 64px 24px;
+            text-align: center;
+            width: 100%;
+        }
+        .trust-container {
+            max-width: 850px;
+            width: 100%;
+            margin: 0 auto;
+        }
+        .trust-container h2 {
+            margin: 0 0 12px 0;
+            font-size: 2rem;
+        }
+        .trust-pillars {
+            display: flex;
+            justify-content: center;
+            gap: 28px;
+            flex-wrap: wrap;
+            margin-top: 28px;
+            color: #cbd5e1;
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+
+        /* Two-Column Professional Footer */
+        .footer {
+            background: #090d16;
+            color: #94a3b8;
+            padding: 56px 24px 32px;
+            border-top: 1px solid #1e293b;
+            width: 100%;
+        }
+        .footer-grid {
+            max-width: 1150px;
+            width: 100%;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 40px;
+            padding-bottom: 40px;
+            border-bottom: 1px solid #1e293b;
+        }
+        .footer-brand {
+            color: white;
+            font-size: 1.4rem;
+            font-weight: 800;
+            margin-bottom: 12px;
+            display: inline-block;
+            text-decoration: none;
+        }
+        .footer-links {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .footer-links a {
+            color: #94a3b8;
+            text-decoration: none;
+            transition: color 0.2s ease;
+        }
+        .footer-links a:hover {
+            color: white;
+        }
+        .footer-bottom {
+            max-width: 1150px;
+            width: 100%;
+            margin: 24px auto 0;
+            text-align: center;
+            font-size: 0.85rem;
+            color: #64748b;
+        }
+
+        /* Floating Contact Bubble */
+        .floating-chat {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            background: #10b981;
+            color: white;
+            text-decoration: none;
+            padding: 12px 20px;
+            border-radius: 999px;
+            font-weight: 700;
+            font-size: 0.95rem;
+            box-shadow: 0 10px 25px -5px rgba(16, 185, 129, 0.5);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            z-index: 99;
+            transition: transform 0.2s ease, background 0.2s ease;
+        }
+        .floating-chat:hover {
+            background: #059669;
+            transform: scale(1.05);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 1. Sticky Glass Navbar -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="/" class="brand">
+                🧺 {{ .ShopName }} <span>{{ .Tagline }}</span>
+            </a>
+            <div class="nav-links">
+                <a href="#how-it-works">How It Works</a>
+                <a href="#pricing">Pricing</a>
+                <a href="/login" class="btn-outline">Sign In</a>
+                <a href="/signup" class="btn-primary">Create Account</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 2. Hero & Interactive Quick-Book Widget -->
+    <div class="hero-wrapper">
+        <section class="hero">
+            <div class="hero-text reveal">
+                <h1>Fresh, Crisp Laundry Without the Hassle.</h1>
+                <p>Experience professional garment care, sharp steam ironing, and reliable pickup &amp; delivery—tracked live from drop-off to collection.</p>
+                <div style="display: flex; gap: 14px; flex-wrap: wrap;">
+                    <a href="#pricing" class="btn-primary" style="text-decoration: none; padding: 13px 26px; font-size: 1rem;">Explore Price List</a>
+                    <a href="/login" class="btn-outline" style="text-decoration: none; padding: 13px 26px; font-size: 1rem;">Track My Order</a>
+                </div>
+                <div class="hero-badges">
+                    <span class="badge-pill">⚡ 24–48hr Turnaround</span>
+                    <span class="badge-pill">🛡️ Zero Color-Bleed Sorting</span>
+                    <span class="badge-pill">🚚 Doorstep Pickup &amp; Delivery</span>
+                </div>
+            </div>
+
+            <!-- Quick-Book Form -->
+            <div class="action-card reveal">
+                <h3>⚡ Quick Book &amp; Price Estimator</h3>
+                <p style="margin-top: 0; color: var(--slate); font-size: 0.9rem; margin-bottom: 20px;">Select your items below. We'll save your basket while you create or sign into your account.</p>
+
+                <form action="/book" method="POST">
+                    <div class="form-group">
+                        <label for="serviceSelect">Select Garment / Service</label>
+                        <select id="serviceSelect" name="service_name" class="form-control" required onchange="updateEstimate()">
+                            {{ range .Services }}
+                            <option value="{{ .Name }}" data-price="{{ .Price }}">{{ .Name }} — ₦{{ .Price }}</option>
+                            {{ end }}
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="qtyInput">Quantity (Pieces / Sets)</label>
+                        <input type="number" id="qtyInput" name="quantity" value="1" min="1" class="form-control" required oninput="updateEstimate()">
+                    </div>
+
+                    <div class="estimate-banner">
+                        <span>Estimated Total:</span>
+                        <span id="estimatedTotal" style="font-size: 1.2rem;">₦0</span>
+                    </div>
+
+                    <button type="submit" class="btn-primary" style="width: 100%; padding: 13px; font-size: 1rem;">
+                        Continue to Book Laundry &rarr;
+                    </button>
+                </form>
+            </div>
+        </section>
+    </div>
+
+    <!-- 3. How It Works Section (Scroll-Animated) -->
+    <div class="section-wrapper">
+        <section id="how-it-works" class="section">
+            <div class="section-header reveal">
+                <h2>How {{ .ShopName }} Works</h2>
+                <p style="color: var(--slate); margin: 0; font-size: 1.05rem;">Three simple steps to spotless, crisp clothes.</p>
+            </div>
+            <div class="card-grid">
+                <div class="feature-card reveal">
+                    <div>
+                        <div class="step-badge">1</div>
+                        <h4>Book &amp; Estimate Online</h4>
+                        <p style="color: var(--slate); font-size: 0.95rem; margin: 0;">Pick your laundry items using our live estimator or straight from your personal dashboard in seconds.</p>
+                    </div>
+                </div>
+                <div class="feature-card reveal">
+                    <div>
+                        <div class="step-badge">2</div>
+                        <h4>Wash &amp; Steam Iron</h4>
+                        <p style="color: var(--slate); font-size: 0.95rem; margin: 0;">Follow live status updates as our specialists move your garments from Pending to Washing &amp; Ironing.</p>
+                    </div>
+                </div>
+                <div class="feature-card reveal">
+                    <div>
+                        <div class="step-badge">3</div>
+                        <h4>Pickup or Delivery</h4>
+                        <p style="color: var(--slate); font-size: 0.95rem; margin: 0;">See the moment your order is Ready for Pickup, complete with a printable digital receipt.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- 4. Live Database Pricing Grid (Staggered Scroll-Animation) -->
+    <div class="section-alt">
+        <section id="pricing" class="section">
+            <div class="section-header reveal">
+                <h2>Transparent Laundry Pricing</h2>
+                <p style="color: var(--slate); margin: 0; font-size: 1.05rem;">Live store rates with no hidden charges.</p>
+            </div>
+            <div class="pricing-grid">
+                {{ range .Services }}
+                <div class="feature-card reveal">
+                    <div>
+                        <h4>{{ .Name }}</h4>
+                        <p style="color: var(--slate); font-size: 0.85rem; margin: 0 0 16px 0;">Full wash, starch &amp; crisp packaging</p>
+                    </div>
+                    <div>
+                        <span class="price-tag">₦{{ .Price }}</span>
+                        <span class="price-unit">/ item</span>
+                    </div>
+                </div>
+                {{ end }}
+            </div>
+        </section>
+    </div>
+
+    <!-- 5. Trust & Guarantee Banner -->
+    <section class="trust-banner">
+        <div class="trust-container reveal">
+            <h2>Premium Garment Care You Can Count On</h2>
+            <p style="color: #94a3b8; font-size: 1.05rem; margin: 0;">Every load is sorted by color and fabric type, washed with gentle premium detergents, and pressed to perfection.</p>
+            <div class="trust-pillars">
+                <span>✔ Gentle Fabric Detergents</span>
+                <span>✔ Crisp Steam Pressing</span>
+                <span>✔ Real-Time Order Tracking</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- 6. Two-Column Professional Footer -->
+    <footer class="footer">
+        <div class="footer-grid">
+            <!-- Column 1: Brand & Mission -->
+            <div>
+                <a href="/" class="footer-brand">🧺 {{ .ShopName }}</a>
+                <p style="margin: 0; max-width: 360px; font-size: 0.95rem;">Modernizing everyday laundry care with transparent pricing, real-time tracking, and crisp garment finishing.</p>
+            </div>
+
+            <!-- Column 2: Quick Links -->
+            <div>
+                <h4 style="color: white; margin: 0 0 14px 0; font-size: 1rem;">Quick Navigation</h4>
+                <ul class="footer-links">
+                    <li><a href="#how-it-works">How It Works</a></li>
+                    <li><a href="#pricing">Service Price List</a></li>
+                    <li><a href="/login">Customer &amp; Staff Sign In</a></li>
+                    <li><a href="/signup">Create Customer Account</a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            &copy; 2026 {{ .ShopName }} ({{ .Tagline }}). All rights reserved.
+        </div>
+    </footer>
+
+    <!-- 7. Floating Contact Bubble -->
+    <a href="https://wa.me/" target="_blank" rel="noopener noreferrer" class="floating-chat">
+        💬 Chat with Us
+    </a>
+
+    <script>
+        function updateEstimate() {
+            var select = document.getElementById('serviceSelect');
+            var qtyInput = document.getElementById('qtyInput');
+            var totalDisplay = document.getElementById('estimatedTotal');
+            if (!select || select.selectedIndex < 0) return;
+
+            var price = parseFloat(select.options[select.selectedIndex].getAttribute('data-price')) || 0;
+            var qty = parseInt(qtyInput.value, 10) || 0;
+            var total = price * (qty > 0 ? qty : 0);
+            totalDisplay.textContent = '₦' + total.toLocaleString();
+        }
+
+        window.addEventListener('DOMContentLoaded', function() {
+            updateEstimate();
+
+            // IntersectionObserver for smooth scroll-triggered animations
+            var revealElements = document.querySelectorAll('.reveal');
+            if ('IntersectionObserver' in window) {
+                var observer = new IntersectionObserver(function(entries) {
+                    entries.forEach(function(entry, index) {
+                        if (entry.isIntersecting) {
+                            setTimeout(function() {
+                                entry.target.classList.add('active');
+                            }, index * 80);
+                            observer.unobserve(entry.target);
+                        }
+                    });
+                }, { threshold: 0.12 });
+
+                revealElements.forEach(function(el) {
+                    observer.observe(el);
+                });
+            } else {
+                revealElements.forEach(function(el) {
+                    el.classList.add('active');
+                });
+            }
+        });
+    </script>
+</body>
+</html>

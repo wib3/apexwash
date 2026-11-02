@@ -234,9 +234,14 @@ func HomeHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	tmpl, err := template.ParseFiles("templates/index.html")
+	templateFile := "templates/landing.html"
+	if staff || currentUser != nil {
+		templateFile = "templates/index.html"
+	}
+
+	tmpl, err := template.ParseFiles(templateFile)
 	if err != nil {
-		http.Error(w, "Could not load template", http.StatusInternalServerError)
+		http.Error(w, "Could not load template: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 
@@ -343,8 +348,8 @@ func DeleteOrderHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
-	if !isStaff(r) {
-		http.Error(w, "Unauthorized: Staff login required", http.StatusUnauthorized)
+	if !isSuperAdmin(r) {
+		http.Error(w, "Unauthorized: Super Admin access required", http.StatusUnauthorized)
 		return
 	}
 	idStr := r.FormValue("order_id")
@@ -646,7 +651,7 @@ func CustomerLoginHandler(w http.ResponseWriter, r *http.Request) {
 		http.SetCookie(w, &http.Cookie{Name: "customer_session", Value: "", Path: "/", MaxAge: -1, HttpOnly: true})
 		http.SetCookie(w, &http.Cookie{Name: "staff_session", Value: signSessionValue("authenticated"), Path: "/", HttpOnly: true})
 		http.SetCookie(w, &http.Cookie{Name: "super_admin_session", Value: signSessionValue("super_admin"), Path: "/", HttpOnly: true})
-		http.Redirect(w, r, "/", http.StatusSeeOther)
+		http.Redirect(w, r, "/admin", http.StatusSeeOther)
 		return
 	}
 	if normalizedPhone, ok := normalizeAndValidatePhone(identifier); ok {
@@ -665,18 +670,18 @@ func CustomerLoginHandler(w http.ResponseWriter, r *http.Request) {
 	).Scan(&userID, &passwordHash, &role, &accountStatus)
 
 	if err == sql.ErrNoRows {
-		redirectURL := "/?login_error=Account not found. Please create an account.&identifier=" + url.QueryEscape(identifier)
+		redirectURL := "/login?login_error=Account not found. Please create an account.&identifier=" + url.QueryEscape(identifier)
 		http.Redirect(w, r, redirectURL, http.StatusSeeOther)
 		return
 	} else if err != nil {
-		redirectURL := "/?login_error=Server error. Please try again.&identifier=" + url.QueryEscape(identifier)
+		redirectURL := "/login?login_error=Server error. Please try again.&identifier=" + url.QueryEscape(identifier)
 		http.Redirect(w, r, redirectURL, http.StatusSeeOther)
 		return
 	}
 
 	// BLACKLIST GATEKEEPER
 	if accountStatus == "blacklisted" {
-		redirectURL := "/?login_error=This account is suspended. Please contact support.&identifier=" + url.QueryEscape(identifier)
+		redirectURL := "/login?login_error=This account is suspended. Please contact support.&identifier=" + url.QueryEscape(identifier)
 		http.Redirect(w, r, redirectURL, http.StatusSeeOther)
 		return
 	}
@@ -684,7 +689,7 @@ func CustomerLoginHandler(w http.ResponseWriter, r *http.Request) {
 	// 3. Password Verification
 	err = bcrypt.CompareHashAndPassword([]byte(passwordHash), []byte(password))
 	if err != nil {
-		redirectURL := "/?login_error=Incorrect password. Please try again.&identifier=" + url.QueryEscape(identifier)
+		redirectURL := "/login?login_error=Incorrect password. Please try again.&identifier=" + url.QueryEscape(identifier)
 		http.Redirect(w, r, redirectURL, http.StatusSeeOther)
 		return
 	}
@@ -695,7 +700,7 @@ func CustomerLoginHandler(w http.ResponseWriter, r *http.Request) {
 		http.SetCookie(w, &http.Cookie{Name: "customer_session", Value: "", Path: "/", MaxAge: -1, HttpOnly: true})
 		http.SetCookie(w, &http.Cookie{Name: "staff_session", Value: signSessionValue("authenticated"), Path: "/", HttpOnly: true})
 		http.SetCookie(w, &http.Cookie{Name: "super_admin_session", Value: signSessionValue("super_admin"), Path: "/", HttpOnly: true})
-		http.Redirect(w, r, "/", http.StatusSeeOther)
+		http.Redirect(w, r, "/admin", http.StatusSeeOther)
 		return
 	case "staff":
 		http.SetCookie(w, &http.Cookie{Name: "customer_session", Value: "", Path: "/", MaxAge: -1, HttpOnly: true})
@@ -950,4 +955,29 @@ func UpdateUserAccessHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.Redirect(w, r, "/admin?msg=User+permissions+updated", http.StatusSeeOther)
+}
+
+// LoginGetHandler serves the dedicated login page
+func LoginGetHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	loginError := r.URL.Query().Get("login_error")
+	identifier := r.URL.Query().Get("identifier")
+
+	tmpl, err := template.ParseFiles("templates/login.html")
+	if err != nil {
+		http.Error(w, "Failed to load login page: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	data := PageData{
+		ShopName:   "ApexWash",
+		Tagline:    "Engineered by IB",
+		LoginError: loginError,
+		Identifier: identifier,
+	}
+	tmpl.Execute(w, data)
 }
