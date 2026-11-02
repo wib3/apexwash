@@ -328,8 +328,11 @@ func UpdateStatusHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Failed to update status", http.StatusInternalServerError)
 		return
 	}
-
-	http.Redirect(w, r, "/", http.StatusSeeOther)
+	redirectURL := r.Header.Get("Referer")
+	if redirectURL == "" {
+		redirectURL = "/"
+	}
+	http.Redirect(w, r, redirectURL, http.StatusSeeOther)
 }
 
 func TogglePaymentHandler(w http.ResponseWriter, r *http.Request) {
@@ -367,7 +370,11 @@ func TogglePaymentHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	http.Redirect(w, r, "/", http.StatusSeeOther)
+	redirectURL := r.Header.Get("Referer")
+	if redirectURL == "" {
+		redirectURL = "/"
+	}
+	http.Redirect(w, r, redirectURL, http.StatusSeeOther)
 }
 
 func DeleteOrderHandler(w http.ResponseWriter, r *http.Request) {
@@ -391,7 +398,11 @@ func DeleteOrderHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Could not delete order", http.StatusInternalServerError)
 		return
 	}
-	http.Redirect(w, r, "/", http.StatusSeeOther)
+	redirectURL := r.Header.Get("Referer")
+	if redirectURL == "" {
+		redirectURL = "/"
+	}
+	http.Redirect(w, r, redirectURL, http.StatusSeeOther)
 }
 
 func LoginHandler(w http.ResponseWriter, r *http.Request) {

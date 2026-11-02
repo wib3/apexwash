@@ -251,7 +251,24 @@
         {{end}}
 
     </ul>
+    <script>
+        // 1. When the page loads, check if we saved a scroll position and jump to it
+        document.addEventListener("DOMContentLoaded", function (event) {
+            var scrollpos = sessionStorage.getItem('scrollpos');
+            if (scrollpos) {
+                window.scrollTo(0, scrollpos);
+                sessionStorage.removeItem('scrollpos'); // clear it so it doesn't get stuck
+            }
+        });
 
+        // 2. Right before any form is submitted (like Mark Paid / Update Status), save the exact scroll position
+        window.addEventListener("submit", function (e) {
+            sessionStorage.setItem('scrollpos', window.scrollY);
+        });
+    </script>
+</body>
+
+</html>
 </body>
 
 </html>
