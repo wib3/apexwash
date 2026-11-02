@@ -78,28 +78,50 @@ func BookHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Invalid form data", http.StatusBadRequest)
+		return
+	}
+
+	services := r.Form["service_name"]
+	quantities := r.Form["quantity"]
+
+	if len(services) == 0 || len(services) != len(quantities) {
+		http.Error(w, "Please select at least one service and quantity", http.StatusBadRequest)
+		return
+	}
+
+	var pendingItems []PendingOrder
+	for i := range services {
+		svc := strings.TrimSpace(services[i])
+		qty, err := strconv.Atoi(strings.TrimSpace(quantities[i]))
+		if svc != "" && err == nil && qty > 0 {
+			pendingItems = append(pendingItems, PendingOrder{
+				ServiceName: svc,
+				Quantity:    qty,
+			})
+		}
+	}
+
+	if len(pendingItems) == 0 {
+		http.Error(w, "Invalid Quantity Entered", http.StatusBadRequest)
+		return
+	}
+
 	staff := isStaff(r)
 	currentUser := getLoggedInCustomer(r)
 
-	// Gatekeeper: If not Staff and not a logged-in Customer, save cart in a cookie and redirect to Signup
+	// Gatekeeper: If not Staff and not a logged-in Customer, save the multi-item cart in a cookie and redirect to Signup
 	if !staff && currentUser == nil {
-		service := strings.TrimSpace(r.FormValue("service_name"))
-		qtyStr := strings.TrimSpace(r.FormValue("quantity"))
-
-		if service != "" && qtyStr != "" {
-			qty, _ := strconv.Atoi(qtyStr)
-			if qty > 0 {
-				pending := PendingOrder{ServiceName: service, Quantity: qty}
-				pendingJSON, _ := json.Marshal(pending)
-
-				http.SetCookie(w, &http.Cookie{
-					Name:     "pending_order",
-					Value:    base64.StdEncoding.EncodeToString(pendingJSON),
-					Path:     "/",
-					MaxAge:   3600,
-					HttpOnly: true,
-				})
-			}
+		pendingJSON, err := json.Marshal(pendingItems)
+		if err == nil {
+			http.SetCookie(w, &http.Cookie{
+				Name:     "pending_order",
+				Value:    base64.StdEncoding.EncodeToString(pendingJSON),
+				Path:     "/",
+				MaxAge:   3600,
+				HttpOnly: true,
+			})
 		}
 		http.Redirect(w, r, "/signup", http.StatusSeeOther)
 		return
@@ -136,26 +158,31 @@ func BookHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	service := r.FormValue("service_name")
-	quantity := r.FormValue("quantity")
+	var summaryParts []string
+	totalQty := 0
+	totalCost := 0
 
-	qty, err := strconv.Atoi(quantity)
-	if err != nil || qty <= 0 {
-		http.Error(w, "Invalid Quantity Entered", http.StatusBadRequest)
-		return
+	for _, item := range pendingItems {
+		var unitPrice float64
+		err := db.QueryRow("SELECT price FROM services WHERE name = ?", item.ServiceName).Scan(&unitPrice)
+		if err != nil {
+			http.Error(w, "Selected service not found: "+item.ServiceName, http.StatusBadRequest)
+			return
+		}
+		totalQty += item.Quantity
+		totalCost += int(float64(item.Quantity) * unitPrice)
+
+		if len(pendingItems) > 1 {
+			summaryParts = append(summaryParts, item.ServiceName+" (x"+strconv.Itoa(item.Quantity)+")")
+		} else {
+			summaryParts = append(summaryParts, item.ServiceName)
+		}
 	}
 
-	var unitPrice float64
-	err = db.QueryRow("SELECT price FROM services WHERE name = ?", service).Scan(&unitPrice)
-	if err != nil {
-		http.Error(w, "Selected service not found", http.StatusBadRequest)
-		return
-	}
-
-	totalCost := int(float64(qty) * unitPrice)
+	combinedService := strings.Join(summaryParts, ", ")
 
 	insertSQL := `INSERT INTO orders (user_id, customer_name, customer_phone, delivery_address, service_name, quantity, total_cost, status, payment_status) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)`
-	_, err = db.Exec(insertSQL, userID, customer, phone, address, service, qty, totalCost, "Pending", "Unpaid")
+	_, err := db.Exec(insertSQL, userID, customer, phone, address, combinedService, totalQty, totalCost, "Pending", "Unpaid")
 	if err != nil {
 		http.Error(w, "Failed to save order", http.StatusInternalServerError)
 		return
@@ -785,21 +812,49 @@ func processPendingOrder(w http.ResponseWriter, r *http.Request, user *User) {
 		return
 	}
 
-	var pending PendingOrder
-	if err := json.Unmarshal(decodedJSON, &pending); err != nil {
+	var items []PendingOrder
+	if err := json.Unmarshal(decodedJSON, &items); err != nil {
+		// Fallback in case a single-item cookie format was stored
+		var single PendingOrder
+		if errSingle := json.Unmarshal(decodedJSON, &single); errSingle == nil && single.ServiceName != "" {
+			items = []PendingOrder{single}
+		} else {
+			return
+		}
+	}
+
+	if len(items) == 0 {
 		return
 	}
 
-	var unitPrice float64
-	err = db.QueryRow("SELECT price FROM services WHERE name = ?", pending.ServiceName).Scan(&unitPrice)
-	if err != nil {
+	var summaryParts []string
+	totalQty := 0
+	totalCost := 0
+
+	for _, item := range items {
+		var unitPrice float64
+		err := db.QueryRow("SELECT price FROM services WHERE name = ?", item.ServiceName).Scan(&unitPrice)
+		if err != nil {
+			continue
+		}
+		totalQty += item.Quantity
+		totalCost += int(float64(item.Quantity) * unitPrice)
+
+		if len(items) > 1 {
+			summaryParts = append(summaryParts, item.ServiceName+" (x"+strconv.Itoa(item.Quantity)+")")
+		} else {
+			summaryParts = append(summaryParts, item.ServiceName)
+		}
+	}
+
+	if totalQty == 0 {
 		return
 	}
 
-	totalCost := float64(pending.Quantity) * unitPrice
+	combinedService := strings.Join(summaryParts, ", ")
 
 	insertSQL := `INSERT INTO orders (user_id, customer_name, customer_phone, delivery_address, service_name, quantity, total_cost, status, payment_status) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)`
-	_, err = db.Exec(insertSQL, user.ID, user.FullName, user.Phone, user.Address, pending.ServiceName, pending.Quantity, totalCost, "Pending", "Unpaid")
+	_, err = db.Exec(insertSQL, user.ID, user.FullName, user.Phone, user.Address, combinedService, totalQty, totalCost, "Pending", "Unpaid")
 
 	if err == nil {
 		http.SetCookie(w, &http.Cookie{Name: "pending_order", Value: "", Path: "/", MaxAge: -1, HttpOnly: true})

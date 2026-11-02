@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en" style="scroll-behavior: smooth; width: 100%; margin: 0; padding: 0;">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -14,10 +15,13 @@
             --slate: #475569;
             --light: #f8fafc;
         }
+
         * {
             box-sizing: border-box;
         }
-        html, body {
+
+        html,
+        body {
             width: 100% !important;
             max-width: 100% !important;
             margin: 0 !important;
@@ -36,6 +40,7 @@
             transform: translateY(32px);
             transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1), transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
         }
+
         .reveal.active {
             opacity: 1;
             transform: translateY(0);
@@ -53,6 +58,7 @@
             z-index: 100;
             width: 100%;
         }
+
         .nav-container {
             max-width: 1150px;
             width: 100%;
@@ -64,6 +70,7 @@
             flex-wrap: wrap;
             gap: 12px;
         }
+
         .brand {
             font-size: 1.5rem;
             font-weight: 800;
@@ -73,6 +80,7 @@
             align-items: center;
             gap: 8px;
         }
+
         .brand span {
             font-size: 0.75rem;
             background: #dbeafe;
@@ -81,12 +89,14 @@
             border-radius: 999px;
             font-weight: 700;
         }
+
         .nav-links {
             display: flex;
             gap: 20px;
             align-items: center;
             flex-wrap: wrap;
         }
+
         .nav-links a {
             text-decoration: none;
             color: var(--slate);
@@ -94,9 +104,11 @@
             font-size: 0.95rem;
             transition: color 0.2s ease;
         }
+
         .nav-links a:hover {
             color: var(--primary);
         }
+
         .btn-outline {
             padding: 9px 18px;
             border: 1px solid #cbd5e1;
@@ -105,10 +117,12 @@
             background: white;
             transition: all 0.2s ease;
         }
+
         .btn-outline:hover {
             border-color: var(--primary);
             color: var(--primary) !important;
         }
+
         .btn-primary {
             padding: 10px 20px;
             background: var(--primary);
@@ -119,6 +133,7 @@
             font-weight: 600;
             transition: transform 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
         }
+
         .btn-primary:hover {
             background: var(--primary-dark);
             transform: translateY(-2px);
@@ -131,6 +146,7 @@
             border-bottom: 1px solid #e2e8f0;
             width: 100%;
         }
+
         .hero {
             max-width: 1150px;
             width: 100%;
@@ -141,6 +157,7 @@
             gap: 48px;
             align-items: center;
         }
+
         .hero-text h1 {
             font-size: 3rem;
             line-height: 1.12;
@@ -148,17 +165,20 @@
             color: var(--dark);
             letter-spacing: -0.02em;
         }
+
         .hero-text p {
             font-size: 1.12rem;
             color: var(--slate);
             margin-bottom: 28px;
         }
+
         .hero-badges {
             display: flex;
             gap: 12px;
             flex-wrap: wrap;
             margin-top: 28px;
         }
+
         .badge-pill {
             background: white;
             border: 1px solid #e2e8f0;
@@ -167,7 +187,7 @@
             font-size: 0.85rem;
             font-weight: 600;
             color: var(--slate);
-            box-shadow: 0 2px 4px rgba(0,0,0,0.03);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.03);
         }
 
         /* Quick Book Card */
@@ -178,14 +198,17 @@
             box-shadow: 0 20px 35px -10px rgba(15, 23, 42, 0.1);
             border: 1px solid #e2e8f0;
         }
+
         .action-card h3 {
             margin-top: 0;
             margin-bottom: 6px;
             font-size: 1.4rem;
         }
+
         .form-group {
             margin-bottom: 18px;
         }
+
         .form-group label {
             display: block;
             font-size: 0.85rem;
@@ -193,6 +216,7 @@
             color: var(--slate);
             margin-bottom: 6px;
         }
+
         .form-control {
             width: 100%;
             padding: 12px 14px;
@@ -201,11 +225,13 @@
             font-size: 0.95rem;
             transition: border-color 0.2s ease, box-shadow 0.2s ease;
         }
+
         .form-control:focus {
             outline: none;
             border-color: var(--primary);
             box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
         }
+
         .estimate-banner {
             background: #f0fdf4;
             border: 1px solid #bbf7d0;
@@ -224,37 +250,44 @@
         .section-wrapper {
             width: 100%;
         }
+
         .section {
             max-width: 1150px;
             width: 100%;
             margin: 0 auto;
             padding: 72px 24px;
         }
+
         .section-alt {
             background: #f1f5f9;
             border-top: 1px solid #e2e8f0;
             border-bottom: 1px solid #e2e8f0;
             width: 100%;
         }
+
         .section-header {
             text-align: center;
             margin-bottom: 48px;
         }
+
         .section-header h2 {
             font-size: 2.2rem;
             margin: 0 0 10px 0;
             letter-spacing: -0.01em;
         }
+
         .card-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
             gap: 24px;
         }
+
         .pricing-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
             gap: 20px;
         }
+
         .feature-card {
             background: white;
             padding: 28px;
@@ -265,11 +298,13 @@
             justify-content: space-between;
             transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
         }
+
         .feature-card:hover {
             transform: translateY(-6px);
             box-shadow: 0 14px 25px -5px rgba(15, 23, 42, 0.08);
             border-color: #93c5fd;
         }
+
         .step-badge {
             width: 40px;
             height: 40px;
@@ -283,16 +318,19 @@
             margin-bottom: 16px;
             font-size: 1.1rem;
         }
+
         .feature-card h4 {
             margin: 0 0 8px 0;
             font-size: 1.15rem;
             color: var(--dark);
         }
+
         .price-tag {
             font-size: 1.65rem;
             font-weight: 800;
             color: var(--primary);
         }
+
         .price-unit {
             font-size: 0.85rem;
             color: var(--slate);
@@ -307,15 +345,18 @@
             text-align: center;
             width: 100%;
         }
+
         .trust-container {
             max-width: 850px;
             width: 100%;
             margin: 0 auto;
         }
+
         .trust-container h2 {
             margin: 0 0 12px 0;
             font-size: 2rem;
         }
+
         .trust-pillars {
             display: flex;
             justify-content: center;
@@ -335,6 +376,7 @@
             border-top: 1px solid #1e293b;
             width: 100%;
         }
+
         .footer-grid {
             max-width: 1150px;
             width: 100%;
@@ -345,6 +387,7 @@
             padding-bottom: 40px;
             border-bottom: 1px solid #1e293b;
         }
+
         .footer-brand {
             color: white;
             font-size: 1.4rem;
@@ -353,6 +396,7 @@
             display: inline-block;
             text-decoration: none;
         }
+
         .footer-links {
             list-style: none;
             padding: 0;
@@ -361,14 +405,17 @@
             flex-direction: column;
             gap: 10px;
         }
+
         .footer-links a {
             color: #94a3b8;
             text-decoration: none;
             transition: color 0.2s ease;
         }
+
         .footer-links a:hover {
             color: white;
         }
+
         .footer-bottom {
             max-width: 1150px;
             width: 100%;
@@ -397,12 +444,14 @@
             z-index: 99;
             transition: transform 0.2s ease, background 0.2s ease;
         }
+
         .floating-chat:hover {
             background: #059669;
             transform: scale(1.05);
         }
     </style>
 </head>
+
 <body>
 
     <!-- 1. Sticky Glass Navbar -->
@@ -425,10 +474,13 @@
         <section class="hero">
             <div class="hero-text reveal">
                 <h1>Fresh, Crisp Laundry Without the Hassle.</h1>
-                <p>Experience professional garment care, sharp steam ironing, and reliable pickup &amp; delivery—tracked live from drop-off to collection.</p>
+                <p>Experience professional garment care, sharp steam ironing, and reliable pickup &amp; delivery—tracked
+                    live from drop-off to collection.</p>
                 <div style="display: flex; gap: 14px; flex-wrap: wrap;">
-                    <a href="#pricing" class="btn-primary" style="text-decoration: none; padding: 13px 26px; font-size: 1rem;">Explore Price List</a>
-                    <a href="/login" class="btn-outline" style="text-decoration: none; padding: 13px 26px; font-size: 1rem;">Track My Order</a>
+                    <a href="#pricing" class="btn-primary"
+                        style="text-decoration: none; padding: 13px 26px; font-size: 1rem;">Explore Price List</a>
+                    <a href="/login" class="btn-outline"
+                        style="text-decoration: none; padding: 13px 26px; font-size: 1rem;">Track My Order</a>
                 </div>
                 <div class="hero-badges">
                     <span class="badge-pill">⚡ 24–48hr Turnaround</span>
@@ -437,29 +489,49 @@
                 </div>
             </div>
 
-            <!-- Quick-Book Form -->
+            <!-- Multi-Item Quick-Book Form -->
             <div class="action-card reveal">
                 <h3>⚡ Quick Book &amp; Price Estimator</h3>
-                <p style="margin-top: 0; color: var(--slate); font-size: 0.9rem; margin-bottom: 20px;">Select your items below. We'll save your basket while you create or sign into your account.</p>
+                <p style="margin-top: 0; color: var(--slate); font-size: 0.9rem; margin-bottom: 20px;">Build your
+                    laundry basket below. We'll save your items while you sign in or create an account.</p>
 
                 <form action="/book" method="POST">
-                    <div class="form-group">
-                        <label for="serviceSelect">Select Garment / Service</label>
-                        <select id="serviceSelect" name="service_name" class="form-control" required onchange="updateEstimate()">
-                            {{ range .Services }}
-                            <option value="{{ .Name }}" data-price="{{ .Price }}">{{ .Name }} — ₦{{ .Price }}</option>
-                            {{ end }}
-                        </select>
+                    <div id="basketItems">
+                        <div class="basket-row"
+                            style="display: grid; grid-template-columns: 1fr 90px 36px; gap: 10px; align-items: end; margin-bottom: 14px;">
+                            <div>
+                                <label
+                                    style="display: block; font-size: 0.8rem; font-weight: 700; color: var(--slate); margin-bottom: 4px;">Garment
+                                    / Service</label>
+                                <select name="service_name" class="form-control service-select" required
+                                    onchange="updateEstimate()">
+                                    {{ range .Services }}
+                                    <option value="{{ .Name }}" data-price="{{ .Price }}">{{ .Name }} — ₦{{ .Price }}
+                                    </option>
+                                    {{ end }}
+                                </select>
+                            </div>
+                            <div>
+                                <label
+                                    style="display: block; font-size: 0.8rem; font-weight: 700; color: var(--slate); margin-bottom: 4px;">Qty</label>
+                                <input type="number" name="quantity" value="1" min="1" class="form-control qty-input"
+                                    required oninput="updateEstimate()">
+                            </div>
+                            <button type="button" onclick="removeBasketRow(this)" title="Remove item"
+                                style="height: 43px; border: 1px solid #fecaca; background: #fef2f2; color: #dc2626; border-radius: 8px; cursor: pointer; font-weight: 800; visibility: hidden;">
+                                &times;
+                            </button>
+                        </div>
                     </div>
 
-                    <div class="form-group">
-                        <label for="qtyInput">Quantity (Pieces / Sets)</label>
-                        <input type="number" id="qtyInput" name="quantity" value="1" min="1" class="form-control" required oninput="updateEstimate()">
-                    </div>
+                    <button type="button" onclick="addBasketRow()"
+                        style="width: 100%; padding: 9px; margin-bottom: 18px; background: #f8fafc; border: 1px dashed #94a3b8; color: var(--primary); font-weight: 700; border-radius: 8px; cursor: pointer; font-size: 0.9rem;">
+                        + Add Another Garment
+                    </button>
 
                     <div class="estimate-banner">
-                        <span>Estimated Total:</span>
-                        <span id="estimatedTotal" style="font-size: 1.2rem;">₦0</span>
+                        <span>Estimated Total (<span id="totalItemsCount">1</span> pcs):</span>
+                        <span id="estimatedTotal" style="font-size: 1.25rem;">₦0</span>
                     </div>
 
                     <button type="submit" class="btn-primary" style="width: 100%; padding: 13px; font-size: 1rem;">
@@ -475,28 +547,32 @@
         <section id="how-it-works" class="section">
             <div class="section-header reveal">
                 <h2>How {{ .ShopName }} Works</h2>
-                <p style="color: var(--slate); margin: 0; font-size: 1.05rem;">Three simple steps to spotless, crisp clothes.</p>
+                <p style="color: var(--slate); margin: 0; font-size: 1.05rem;">Three simple steps to spotless, crisp
+                    clothes.</p>
             </div>
             <div class="card-grid">
                 <div class="feature-card reveal">
                     <div>
                         <div class="step-badge">1</div>
                         <h4>Book &amp; Estimate Online</h4>
-                        <p style="color: var(--slate); font-size: 0.95rem; margin: 0;">Pick your laundry items using our live estimator or straight from your personal dashboard in seconds.</p>
+                        <p style="color: var(--slate); font-size: 0.95rem; margin: 0;">Pick your laundry items using our
+                            live estimator or straight from your personal dashboard in seconds.</p>
                     </div>
                 </div>
                 <div class="feature-card reveal">
                     <div>
                         <div class="step-badge">2</div>
                         <h4>Wash &amp; Steam Iron</h4>
-                        <p style="color: var(--slate); font-size: 0.95rem; margin: 0;">Follow live status updates as our specialists move your garments from Pending to Washing &amp; Ironing.</p>
+                        <p style="color: var(--slate); font-size: 0.95rem; margin: 0;">Follow live status updates as our
+                            specialists move your garments from Pending to Washing &amp; Ironing.</p>
                     </div>
                 </div>
                 <div class="feature-card reveal">
                     <div>
                         <div class="step-badge">3</div>
                         <h4>Pickup or Delivery</h4>
-                        <p style="color: var(--slate); font-size: 0.95rem; margin: 0;">See the moment your order is Ready for Pickup, complete with a printable digital receipt.</p>
+                        <p style="color: var(--slate); font-size: 0.95rem; margin: 0;">See the moment your order is
+                            Ready for Pickup, complete with a printable digital receipt.</p>
                     </div>
                 </div>
             </div>
@@ -508,14 +584,16 @@
         <section id="pricing" class="section">
             <div class="section-header reveal">
                 <h2>Transparent Laundry Pricing</h2>
-                <p style="color: var(--slate); margin: 0; font-size: 1.05rem;">Live store rates with no hidden charges.</p>
+                <p style="color: var(--slate); margin: 0; font-size: 1.05rem;">Live store rates with no hidden charges.
+                </p>
             </div>
             <div class="pricing-grid">
                 {{ range .Services }}
                 <div class="feature-card reveal">
                     <div>
                         <h4>{{ .Name }}</h4>
-                        <p style="color: var(--slate); font-size: 0.85rem; margin: 0 0 16px 0;">Full wash, starch &amp; crisp packaging</p>
+                        <p style="color: var(--slate); font-size: 0.85rem; margin: 0 0 16px 0;">Full wash, starch &amp;
+                            crisp packaging</p>
                     </div>
                     <div>
                         <span class="price-tag">₦{{ .Price }}</span>
@@ -531,7 +609,8 @@
     <section class="trust-banner">
         <div class="trust-container reveal">
             <h2>Premium Garment Care You Can Count On</h2>
-            <p style="color: #94a3b8; font-size: 1.05rem; margin: 0;">Every load is sorted by color and fabric type, washed with gentle premium detergents, and pressed to perfection.</p>
+            <p style="color: #94a3b8; font-size: 1.05rem; margin: 0;">Every load is sorted by color and fabric type,
+                washed with gentle premium detergents, and pressed to perfection.</p>
             <div class="trust-pillars">
                 <span>✔ Gentle Fabric Detergents</span>
                 <span>✔ Crisp Steam Pressing</span>
@@ -546,7 +625,8 @@
             <!-- Column 1: Brand & Mission -->
             <div>
                 <a href="/" class="footer-brand">🧺 {{ .ShopName }}</a>
-                <p style="margin: 0; max-width: 360px; font-size: 0.95rem;">Modernizing everyday laundry care with transparent pricing, real-time tracking, and crisp garment finishing.</p>
+                <p style="margin: 0; max-width: 360px; font-size: 0.95rem;">Modernizing everyday laundry care with
+                    transparent pricing, real-time tracking, and crisp garment finishing.</p>
             </div>
 
             <!-- Column 2: Quick Links -->
@@ -572,27 +652,67 @@
 
     <script>
         function updateEstimate() {
-            var select = document.getElementById('serviceSelect');
-            var qtyInput = document.getElementById('qtyInput');
-            var totalDisplay = document.getElementById('estimatedTotal');
-            if (!select || select.selectedIndex < 0) return;
+            var rows = document.querySelectorAll('.basket-row');
+            var grandTotal = 0;
+            var totalPieces = 0;
 
-            var price = parseFloat(select.options[select.selectedIndex].getAttribute('data-price')) || 0;
-            var qty = parseInt(qtyInput.value, 10) || 0;
-            var total = price * (qty > 0 ? qty : 0);
-            totalDisplay.textContent = '₦' + total.toLocaleString();
+            rows.forEach(function (row, idx) {
+                var select = row.querySelector('.service-select');
+                var qtyInput = row.querySelector('.qty-input');
+                var removeBtn = row.querySelector('button');
+
+                if (removeBtn) {
+                    removeBtn.style.visibility = rows.length > 1 ? 'visible' : 'hidden';
+                }
+
+                if (select && select.selectedIndex >= 0 && qtyInput) {
+                    var price = parseFloat(select.options[select.selectedIndex].getAttribute('data-price')) || 0;
+                    var qty = parseInt(qtyInput.value, 10) || 0;
+                    if (qty > 0) {
+                        grandTotal += price * qty;
+                        totalPieces += qty;
+                    }
+                }
+            });
+
+            document.getElementById('estimatedTotal').textContent = '₦' + grandTotal.toLocaleString();
+            var countEl = document.getElementById('totalItemsCount');
+            if (countEl) countEl.textContent = totalPieces;
         }
 
-        window.addEventListener('DOMContentLoaded', function() {
+        function addBasketRow() {
+            var container = document.getElementById('basketItems');
+            var firstRow = container.querySelector('.basket-row');
+            if (!firstRow) return;
+
+            var newRow = firstRow.cloneNode(true);
+            newRow.querySelector('.qty-input').value = 1;
+            // Remove the top labels on subsequent rows so the list looks super compact
+            var labels = newRow.querySelectorAll('label');
+            labels.forEach(function (lbl) { lbl.remove(); });
+
+            container.appendChild(newRow);
+            updateEstimate();
+        }
+
+        function removeBasketRow(btn) {
+            var rows = document.querySelectorAll('.basket-row');
+            if (rows.length <= 1) return;
+            var row = btn.closest('.basket-row');
+            if (row) row.remove();
+            updateEstimate();
+        }
+
+        window.addEventListener('DOMContentLoaded', function () {
             updateEstimate();
 
             // IntersectionObserver for smooth scroll-triggered animations
             var revealElements = document.querySelectorAll('.reveal');
             if ('IntersectionObserver' in window) {
-                var observer = new IntersectionObserver(function(entries) {
-                    entries.forEach(function(entry, index) {
+                var observer = new IntersectionObserver(function (entries) {
+                    entries.forEach(function (entry, index) {
                         if (entry.isIntersecting) {
-                            setTimeout(function() {
+                            setTimeout(function () {
                                 entry.target.classList.add('active');
                             }, index * 80);
                             observer.unobserve(entry.target);
@@ -600,15 +720,16 @@
                     });
                 }, { threshold: 0.12 });
 
-                revealElements.forEach(function(el) {
+                revealElements.forEach(function (el) {
                     observer.observe(el);
                 });
             } else {
-                revealElements.forEach(function(el) {
+                revealElements.forEach(function (el) {
                     el.classList.add('active');
                 });
             }
         });
     </script>
 </body>
+
 </html>
