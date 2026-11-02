@@ -971,7 +971,7 @@ func SaveServiceHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	http.Redirect(w, r, "/admin?msg=Service+pricing+updated", http.StatusSeeOther)
+	http.Redirect(w, r, "/admin?msg=New+service+added+to+catalog!", http.StatusSeeOther)
 }
 
 // DeleteServiceHandler removes a service from the catalog
@@ -987,7 +987,7 @@ func DeleteServiceHandler(w http.ResponseWriter, r *http.Request) {
 
 	serviceID := r.FormValue("service_id")
 	_, _ = db.Exec("DELETE FROM services WHERE id = ?", serviceID)
-	http.Redirect(w, r, "/admin?msg=Service+removed", http.StatusSeeOther)
+	http.Redirect(w, r, "/admin?msg=Service+permanently+deleted!", http.StatusSeeOther)
 }
 
 // UpdateUserAccessHandler lets Super Admin change a user's role or blacklist/activate them
@@ -1020,7 +1020,7 @@ func UpdateUserAccessHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	http.Redirect(w, r, "/admin?msg=User+permissions+updated", http.StatusSeeOther)
+	http.Redirect(w, r, "/admin?msg=User+permissions+and+status+updated!", http.StatusSeeOther)
 }
 
 // LoginGetHandler serves the dedicated login page
@@ -1046,4 +1046,32 @@ func LoginGetHandler(w http.ResponseWriter, r *http.Request) {
 		Identifier: identifier,
 	}
 	tmpl.Execute(w, data)
+}
+
+func UpdateServicePriceHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	if !isSuperAdmin(r) {
+		http.Error(w, "Forbidden: Super Admin access required", http.StatusForbidden)
+		return
+	}
+
+	serviceID := r.FormValue("service_id")
+	newPrice := r.FormValue("price")
+
+	if serviceID == "" || newPrice == "" {
+		http.Error(w, "Missing required fields", http.StatusBadRequest)
+		return
+	}
+
+	_, err := db.Exec("UPDATE services SET price = ? WHERE id = ?", newPrice, serviceID)
+	if err != nil {
+		http.Error(w, "Failed to update service price", http.StatusInternalServerError)
+		return
+	}
+
+	http.Redirect(w, r, "/admin?msg=Service+price+updated+successfully!", http.StatusSeeOther)
 }

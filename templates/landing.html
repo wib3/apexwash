@@ -5,7 +5,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ .ShopName }} - {{ .Tagline }}</title>
-    <!-- Removed /static/style.css so dashboard rules don't squish the landing page! -->
     <style>
         :root {
             --primary: #2563eb;
@@ -16,12 +15,9 @@
             --light: #f8fafc;
         }
 
-        * {
-            box-sizing: border-box;
-        }
+        * { box-sizing: border-box; }
 
-        html,
-        body {
+        html, body {
             width: 100% !important;
             max-width: 100% !important;
             margin: 0 !important;
@@ -34,7 +30,29 @@
             display: block !important;
         }
 
-        /* Scroll-Reveal Animation Engine */
+        /* --- Pop-up Toast Notification --- */
+        .toast-notification {
+            position: fixed;
+            top: 40px;
+            right: 40px;
+            background: #dcfce3;
+            color: #166534;
+            padding: 16px 24px;
+            border-radius: 8px;
+            font-weight: 700;
+            border: 1px solid #bbf7d0;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            z-index: 9999;
+            transform: translateX(150%);
+            animation: slideIn 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+        }
+        @keyframes slideIn {
+            to { transform: translateX(0); }
+        }
+
         .reveal {
             opacity: 0;
             transform: translateY(32px);
@@ -46,7 +64,6 @@
             transform: translateY(0);
         }
 
-        /* Sticky Glass Navbar */
         .navbar {
             background: rgba(255, 255, 255, 0.88);
             backdrop-filter: blur(12px);
@@ -140,7 +157,6 @@
             box-shadow: 0 8px 15px -3px rgba(37, 99, 235, 0.3);
         }
 
-        /* Hero + Quick Book Split */
         .hero-wrapper {
             background: radial-gradient(circle at top right, #dbeafe 0%, #f8fafc 55%);
             border-bottom: 1px solid #e2e8f0;
@@ -190,7 +206,6 @@
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.03);
         }
 
-        /* Quick Book Card */
         .action-card {
             background: white;
             padding: 32px;
@@ -203,18 +218,6 @@
             margin-top: 0;
             margin-bottom: 6px;
             font-size: 1.4rem;
-        }
-
-        .form-group {
-            margin-bottom: 18px;
-        }
-
-        .form-group label {
-            display: block;
-            font-size: 0.85rem;
-            font-weight: 700;
-            color: var(--slate);
-            margin-bottom: 6px;
         }
 
         .form-control {
@@ -246,7 +249,6 @@
             align-items: center;
         }
 
-        /* Sections & Interactive Cards */
         .section-wrapper {
             width: 100%;
         }
@@ -337,7 +339,6 @@
             font-weight: 500;
         }
 
-        /* Trust & Guarantee Banner */
         .trust-banner {
             background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
             color: white;
@@ -368,7 +369,6 @@
             font-size: 0.95rem;
         }
 
-        /* Two-Column Professional Footer */
         .footer {
             background: #090d16;
             color: #94a3b8;
@@ -425,7 +425,6 @@
             color: #64748b;
         }
 
-        /* Floating Contact Bubble */
         .floating-chat {
             position: fixed;
             bottom: 24px;
@@ -453,8 +452,13 @@
 </head>
 
 <body>
+    <!-- Pop-up Toast Notification -->
+    {{ if .Message }}
+    <div id="toastMessage" class="toast-notification">
+        <span style="font-size: 1.2rem;">✅</span> {{ .Message }}
+    </div>
+    {{ end }}
 
-    <!-- 1. Sticky Glass Navbar -->
     <nav class="navbar">
         <div class="nav-container">
             <a href="/" class="brand">
@@ -469,7 +473,6 @@
         </div>
     </nav>
 
-    <!-- 2. Hero & Interactive Quick-Book Widget -->
     <div class="hero-wrapper">
         <section class="hero">
             <div class="hero-text reveal">
@@ -489,7 +492,6 @@
                 </div>
             </div>
 
-            <!-- Multi-Item Quick-Book Form -->
             <div class="action-card reveal">
                 <h3>⚡ Quick Book &amp; Price Estimator</h3>
                 <p style="margin-top: 0; color: var(--slate); font-size: 0.9rem; margin-bottom: 20px;">Build your
@@ -542,7 +544,6 @@
         </section>
     </div>
 
-    <!-- 3. How It Works Section (Scroll-Animated) -->
     <div class="section-wrapper">
         <section id="how-it-works" class="section">
             <div class="section-header reveal">
@@ -579,7 +580,6 @@
         </section>
     </div>
 
-    <!-- 4. Live Database Pricing Grid (Staggered Scroll-Animation) -->
     <div class="section-alt">
         <section id="pricing" class="section">
             <div class="section-header reveal">
@@ -605,7 +605,6 @@
         </section>
     </div>
 
-    <!-- 5. Trust & Guarantee Banner -->
     <section class="trust-banner">
         <div class="trust-container reveal">
             <h2>Premium Garment Care You Can Count On</h2>
@@ -619,17 +618,13 @@
         </div>
     </section>
 
-    <!-- 6. Two-Column Professional Footer -->
     <footer class="footer">
         <div class="footer-grid">
-            <!-- Column 1: Brand & Mission -->
             <div>
                 <a href="/" class="footer-brand">🧺 {{ .ShopName }}</a>
                 <p style="margin: 0; max-width: 360px; font-size: 0.95rem;">Modernizing everyday laundry care with
                     transparent pricing, real-time tracking, and crisp garment finishing.</p>
             </div>
-
-            <!-- Column 2: Quick Links -->
             <div>
                 <h4 style="color: white; margin: 0 0 14px 0; font-size: 1rem;">Quick Navigation</h4>
                 <ul class="footer-links">
@@ -645,7 +640,6 @@
         </div>
     </footer>
 
-    <!-- 7. Floating Contact Bubble -->
     <a href="https://wa.me/" target="_blank" rel="noopener noreferrer" class="floating-chat">
         💬 Chat with Us
     </a>
@@ -687,7 +681,6 @@
 
             var newRow = firstRow.cloneNode(true);
             newRow.querySelector('.qty-input').value = 1;
-            // Remove the top labels on subsequent rows so the list looks super compact
             var labels = newRow.querySelectorAll('label');
             labels.forEach(function (lbl) { lbl.remove(); });
 
@@ -729,7 +722,19 @@
                 });
             }
         });
+
+        // Auto-hide pop-up toast after 5 seconds
+        document.addEventListener("DOMContentLoaded", function() {
+            var toast = document.getElementById('toastMessage');
+            if (toast) {
+                setTimeout(function() {
+                    toast.style.transition = "transform 0.5s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.5s ease";
+                    toast.style.opacity = "0";
+                    toast.style.transform = "translateX(150%)"; 
+                    setTimeout(function() { toast.remove(); }, 500); 
+                }, 5000); 
+            }
+        });
     </script>
 </body>
-
 </html>

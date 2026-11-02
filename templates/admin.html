@@ -1,122 +1,467 @@
 <!DOCTYPE html>
-<html lang="en">
-
+<html lang="en" style="scroll-behavior: smooth;">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Super Admin - {{ .ShopName }}</title>
-    <link rel="stylesheet" href="/static/style.css">
-</head>
+    <title>Super Admin | {{ .ShopName }}</title>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --sidebar: #0f172a;
+            --sidebar-hover: #1e293b;
+            --slate: #475569;
+            --light: #f8fafc;
+            --border: #e2e8f0;
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background-color: var(--light);
+            color: #0f172a;
+            display: flex;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
 
-<body style="background-color: #f8fafc; font-family: sans-serif; margin: 0; padding: 0;">
-    <div style="max-width: 1100px; margin: 0 auto; padding: 20px;">
-        <!-- Header -->
-        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #e2e8f0; padding-bottom: 15px; margin-bottom: 24px;">
-            <h1 style="margin: 0; color: #4f46e5;">⚡ Super Admin Dashboard</h1>
-            <a href="/" style="padding: 10px 16px; background: #64748b; color: white; text-decoration: none; border-radius: 6px; font-weight: bold;">&larr; Back to Home</a>
+        /* --- Mini-Collapsible Sidebar --- */
+        .sidebar {
+            width: 260px;
+            background-color: var(--sidebar);
+            color: white;
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+            top: 0;
+            bottom: 0;
+            left: 0;
+            z-index: 1000;
+            transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            overflow-x: hidden; 
+            white-space: nowrap; 
+        }
+        
+        .sidebar.collapsed {
+            width: 72px;
+        }
+        
+        .sidebar-header {
+            height: 72px;
+            padding: 0 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .brand-text {
+            font-size: 1.1rem;
+            font-weight: 800;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: opacity 0.2s;
+        }
+
+        .sidebar.collapsed .brand-text {
+            opacity: 0;
+            pointer-events: none;
+            width: 0;
+            display: none;
+        }
+        
+        .sidebar.collapsed .sidebar-header {
+            justify-content: center;
+            padding: 0;
+        }
+
+        .toggle-btn {
+            background: transparent;
+            color: #94a3b8;
+            border: none;
+            font-size: 1.4rem;
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+        .toggle-btn:hover {
+            color: white;
+            background: rgba(255,255,255,0.1);
+        }
+
+        .sidebar-nav {
+            flex: 1;
+            padding: 20px 0;
+        }
+        
+        .nav-link {
+            display: flex;
+            align-items: center;
+            padding: 14px 24px;
+            color: #94a3b8;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.2s ease;
+            gap: 14px;
+        }
+        .nav-link:hover {
+            background-color: var(--sidebar-hover);
+            color: white;
+            border-left: 4px solid var(--primary);
+        }
+        .nav-icon {
+            font-size: 1.25rem;
+            min-width: 24px;
+            text-align: center;
+        }
+        .nav-text {
+            transition: opacity 0.2s;
+        }
+
+        .sidebar.collapsed .nav-link {
+            padding: 14px 0;
+            justify-content: center;
+            border-left: 4px solid transparent; 
+        }
+        .sidebar.collapsed .nav-link:hover {
+            border-left: 4px solid var(--primary);
+        }
+        .sidebar.collapsed .nav-text {
+            display: none; 
+        }
+
+        .nav-footer {
+            padding: 20px 0;
+            border-top: 1px solid rgba(255,255,255,0.1);
+        }
+        .logout-btn {
+            width: 100%;
+            background: none;
+            border: none;
+            text-align: left;
+            padding: 14px 24px;
+            color: #f87171;
+            font-weight: 700;
+            cursor: pointer;
+            font-family: inherit;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            font-size: 1rem;
+            transition: background 0.2s ease;
+        }
+        .logout-btn:hover {
+            background-color: var(--sidebar-hover);
+        }
+        .sidebar.collapsed .logout-btn {
+            padding: 14px 0;
+            justify-content: center;
+        }
+
+        /* --- Main Content Area --- */
+        .main-content {
+            margin-left: 260px;
+            flex: 1;
+            padding: 40px;
+            transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            width: 100%;
+        }
+        .main-content.expanded {
+            margin-left: 72px;
+        }
+
+        .header-section {
+            margin-bottom: 32px;
+        }
+        .header-section h1 {
+            margin: 0 0 8px 0;
+            font-size: 2rem;
+            letter-spacing: -0.02em;
+            line-height: 1.1;
+        }
+        .alert-banner {
+            background: #dcfce3;
+            color: #166534;
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 24px;
+            font-weight: 700;
+            border: 1px solid #bbf7d0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* --- Cards & Tables --- */
+        .admin-card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+            border: 1px solid var(--border);
+            padding: 24px;
+            margin-bottom: 32px;
+        }
+        .admin-card h2 {
+            margin-top: 0;
+            margin-bottom: 8px;
+            font-size: 1.25rem;
+        }
+        .table-responsive {
+            overflow-x: auto;
+            margin-top: 16px;
+        }
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+        }
+        .table th {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            color: var(--slate);
+            padding: 12px 16px;
+            border-bottom: 2px solid var(--border);
+        }
+        .table td {
+            padding: 16px;
+            border-bottom: 1px solid var(--border);
+            vertical-align: middle;
+        }
+
+        /* --- Badges --- */
+        .badge {
+            padding: 4px 10px;
+            border-radius: 999px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: capitalize;
+        }
+        .badge-super_admin { background: #fee2e2; color: #991b1b; }
+        .badge-staff { background: #dbeafe; color: #1e40af; }
+        .badge-customer { background: #f1f5f9; color: var(--slate); }
+        .badge-active { background: #dcfce3; color: #166534; }
+        .badge-blacklisted { background: #fef2f2; color: #b91c1c; border: 1px solid #fca5a5; }
+
+        /* --- Forms & Buttons --- */
+        .form-inline {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        .form-control {
+            padding: 8px 12px;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            font-family: inherit;
+        }
+        .btn {
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s ease;
+        }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-primary:hover { background: #1d4ed8; }
+        .btn-success { background: #10b981; color: white; }
+        .btn-success:hover { background: #059669; }
+        .btn-danger-outline { background: white; color: #dc2626; border: 1px solid #fecaca; }
+        .btn-danger-outline:hover { background: #fef2f2; }
+    </style>
+</head>
+<body>
+
+    <!-- Fixed Mini-Collapsible Sidebar -->
+    <div id="sidebar" class="sidebar">
+        <div class="sidebar-header">
+            <div class="brand-text">
+                <span class="nav-icon">🛡️</span> 
+                <span>Control Center</span>
+            </div>
+            <button id="toggleSidebarBtn" class="toggle-btn" title="Toggle Sidebar">
+                ☰
+            </button>
+        </div>
+        <div class="sidebar-nav">
+            <a href="#users" class="nav-link" title="User Management">
+                <span class="nav-icon">👥</span>
+                <span class="nav-text">User Management</span>
+            </a>
+            <a href="#services" class="nav-link" title="Service Catalog">
+                <span class="nav-icon">📋</span>
+                <span class="nav-text">Service Catalog</span>
+            </a>
+        </div>
+        <div class="nav-footer">
+            <a href="/" class="nav-link" title="Back to App">
+                <span class="nav-icon">⟵</span>
+                <span class="nav-text">Back to App</span>
+            </a>
+            <form action="/logout" method="POST" style="margin: 0; padding: 0;">
+                <button type="submit" class="logout-btn" title="Logout Securely">
+                    <span class="nav-icon">🚪</span>
+                    <span class="nav-text">Logout Securely</span>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Main Content Panel -->
+    <div id="mainContent" class="main-content">
+        
+        <div class="header-section">
+            <h1>System Administration</h1>
+            <p style="color: var(--slate); margin: 0;">Manage access controls, staff assignments, and store pricing.</p>
         </div>
 
-        <!-- Success Message Alert -->
+        <!-- Success Messages -->
         {{ if .Message }}
-        <div style="background-color: #dcfce7; color: #166534; padding: 12px 20px; border-radius: 6px; margin-bottom: 24px; font-weight: bold; border: 1px solid #bbf7d0;">
+        <div class="alert-banner">
             ✅ {{ .Message }}
         </div>
         {{ end }}
 
-        <div style="display: flex; gap: 24px; flex-wrap: wrap; align-items: flex-start;">
+        <!-- 1. User Management & RBAC -->
+        <div id="users" class="admin-card">
+            <h2>User Management & Access Control</h2>
+            <p style="color: var(--slate); font-size: 0.9rem; margin-bottom: 20px;">Promote users to Staff/Super Admin or suspend accounts (Blacklist).</p>
+            
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>User Details</th>
+                            <th>Role</th>
+                            <th>Status</th>
+                            <th>Modify Permissions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{ range .Users }}
+                        <tr>
+                            <td>
+                                <div style="font-weight: 700; color: #0f172a; margin-bottom: 4px;">{{ .FullName }}</div>
+                                <div style="font-size: 0.8rem; color: var(--slate);">{{ .Phone }} • {{ .Email }}</div>
+                            </td>
+                            <td><span class="badge badge-{{ .Role }}">{{ .Role }}</span></td>
+                            <td><span class="badge badge-{{ .AccountStatus }}">{{ .AccountStatus }}</span></td>
+                            <td>
+                                <form action="/admin/user/update" method="POST" class="form-inline">
+                                    <input type="hidden" name="user_id" value="{{ .ID }}">
+                                    
+                                    <select name="role" class="form-control">
+                                        <option value="customer" {{ if eq .Role "customer" }}selected{{ end }}>Customer</option>
+                                        <option value="staff" {{ if eq .Role "staff" }}selected{{ end }}>Staff</option>
+                                        <option value="super_admin" {{ if eq .Role "super_admin" }}selected{{ end }}>Super Admin</option>
+                                    </select>
 
-            <!-- LEFT COLUMN: Prices & Services -->
-            <div style="flex: 1; min-width: 320px; background: white; padding: 24px; border-radius: 10px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
-                <h2 style="margin-top: 0; color: #1e293b; font-size: 1.25rem;">🧺 Manage Prices</h2>
+                                    <select name="account_status" class="form-control">
+                                        <option value="active" {{ if eq .AccountStatus "active" }}selected{{ end }}>Active</option>
+                                        <option value="blacklisted" {{ if eq .AccountStatus "blacklisted" }}selected{{ end }}>Blacklisted</option>
+                                    </select>
 
-                <!-- Add/Update Service Form -->
-                <form action="/admin/service/save" method="POST" style="margin-bottom: 24px; padding: 16px; background: #f1f5f9; border-radius: 8px; border: 1px solid #e2e8f0;">
-                    <h4 style="margin-top: 0; margin-bottom: 12px; color: #334155;">Add or Update Service</h4>
-                    <input type="text" name="name" placeholder="Service Name (e.g. Bed Sheet)" required style="width: 100%; box-sizing: border-box; margin-bottom: 12px; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px;">
-                    <input type="number" name="price" placeholder="Price in ₦" required style="width: 100%; box-sizing: border-box; margin-bottom: 12px; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px;">
-                    <button type="submit" style="background: #10b981; color: white; border: none; padding: 10px; border-radius: 6px; cursor: pointer; width: 100%; font-weight: bold; font-size: 0.95rem;">Save Service</button>
-                    <small style="display: block; margin-top: 8px; color: #64748b; font-size: 0.8rem;">* If the name already exists, its price will be updated.</small>
-                </form>
-
-                <!-- List Current Services -->
-                <ul style="list-style: none; padding: 0; margin: 0;">
-                    {{ range .Services }}
-                    <li style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #e2e8f0;">
-                        <span style="color: #334155; font-size: 0.95rem;"><strong>{{ .Name }}</strong> - ₦{{ .Price }}</span>
-                        <form action="/admin/service/delete" method="POST" style="margin: 0;">
-                            <input type="hidden" name="service_id" value="{{ .ID }}">
-                            <button type="submit" style="background: #ef4444; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; font-weight: bold;">Delete</button>
-                        </form>
-                    </li>
-                    {{ end }}
-                </ul>
+                                    <button type="submit" class="btn btn-primary">Save</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {{ end }}
+                    </tbody>
+                </table>
             </div>
-
-            <!-- RIGHT COLUMN: User Access & Roles -->
-            <div style="flex: 2; min-width: 500px; background: white; padding: 24px; border-radius: 10px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
-                <h2 style="margin-top: 0; color: #1e293b; font-size: 1.25rem;">👥 User &amp; Staff Access</h2>
-                <div style="overflow-x: auto;">
-                    <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.9rem;">
-                        <thead>
-                            <tr style="background: #f8fafc;">
-                                <th style="padding: 12px; border-bottom: 2px solid #cbd5e1; color: #475569;">Name</th>
-                                <th style="padding: 12px; border-bottom: 2px solid #cbd5e1; color: #475569;">Contact</th>
-                                <th style="padding: 12px; border-bottom: 2px solid #cbd5e1; color: #475569;">Permissions &amp; Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {{ range .Users }}
-                            <tr style="border-bottom: 1px solid #e2e8f0;">
-                                <td style="padding: 12px; color: #1e293b;"><strong>{{ .FullName }}</strong></td>
-                                <td style="padding: 12px; color: #334155;">{{ .Phone }}<br><small style="color: #64748b;">{{ .Email }}</small></td>
-                                <td style="padding: 12px;">
-                                    <form action="/admin/user/update" method="POST" style="display: flex; gap: 8px; align-items: center; margin: 0;">
-                                        <input type="hidden" name="user_id" value="{{ .ID }}">
-
-                                        <select name="role" style="padding: 6px; border: 1px solid #cbd5e1; border-radius: 4px;">
-                                            {{ if eq .Role "customer" }}
-                                            <option value="customer" selected>Customer</option>
-                                            {{ else }}
-                                            <option value="customer">Customer</option>
-                                            {{ end }}
-
-                                            {{ if eq .Role "staff" }}
-                                            <option value="staff" selected>Staff</option>
-                                            {{ else }}
-                                            <option value="staff">Staff</option>
-                                            {{ end }}
-
-                                            {{ if eq .Role "super_admin" }}
-                                            <option value="super_admin" selected>Super Admin</option>
-                                            {{ else }}
-                                            <option value="super_admin">Super Admin</option>
-                                            {{ end }}
-                                        </select>
-
-                                        {{ if eq .AccountStatus "blacklisted" }}
-                                        <select name="account_status" style="padding: 6px; border: 1px solid #f87171; border-radius: 4px; background-color: #fee2e2; color: #991b1b; font-weight: bold;">
-                                            <option value="active">Active</option>
-                                            <option value="blacklisted" selected>Blacklisted</option>
-                                        </select>
-                                        {{ else }}
-                                        <select name="account_status" style="padding: 6px; border: 1px solid #cbd5e1; border-radius: 4px;">
-                                            <option value="active" selected>Active</option>
-                                            <option value="blacklisted">Blacklisted</option>
-                                        </select>
-                                        {{ end }}
-
-                                        <button type="submit" style="background: #3b82f6; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: bold;">Update</button>
-                                    </form>
-                                </td>
-                            </tr>
-                            {{ end }}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
         </div>
-    </div>
-</body>
 
+        <!-- 2. Service Catalog & Live Pricing -->
+        <div id="services" class="admin-card">
+            <h2>Service Catalog & Pricing</h2>
+            <p style="color: var(--slate); font-size: 0.9rem; margin-bottom: 20px;">Add new garments/services or update prices. Changes reflect instantly on the public storefront.</p>
+            
+            <div style="background: #f1f5f9; padding: 20px; border-radius: 8px; border: 1px dashed #cbd5e1; margin-bottom: 24px;">
+                <h4 style="margin-top: 0; margin-bottom: 12px; color: #0f172a;">➕ Add New Service</h4>
+                <form action="/admin/service/save" method="POST" class="form-inline">
+                    <input type="text" name="name" placeholder="e.g. Premium Duvet (Large)" required class="form-control" style="flex: 1;">
+                    <input type="number" name="price" placeholder="Price (₦)" min="1" required class="form-control" style="width: 140px;">
+                    <button type="submit" class="btn btn-success">Save Service</button>
+                </form>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Service Name</th>
+                            <th>Current Price</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{ range .Services }}
+                        <tr>
+                            <td style="font-weight: 600; color: #0f172a;">{{ .Name }}</td>
+                            <td>
+                                <!-- Inline Edit Price Form -->
+                                <form action="/admin/service/update" method="POST" class="form-inline" style="margin: 0;">
+                                    <input type="hidden" name="service_id" value="{{ .ID }}">
+                                    <div style="display: flex; align-items: center; border: 1px solid #cbd5e1; border-radius: 6px; overflow: hidden; background: white;">
+                                        <span style="background: #f1f5f9; padding: 7px 10px; color: var(--slate); font-weight: 700; border-right: 1px solid #cbd5e1; font-size: 0.9rem;">₦</span>
+                                        <input type="number" name="price" value="{{ .Price }}" required min="1" style="width: 90px; border: none; padding: 7px 10px; font-weight: 700; color: var(--primary); outline: none; font-size: 0.9rem; font-family: inherit;">
+                                    </div>
+                                    <button type="submit" class="btn btn-primary" style="padding: 7px 12px; font-size: 0.85rem;">Save</button>
+                                </form>
+                            </td>
+                            <td>
+                                <form action="/admin/service/delete" method="POST" style="margin: 0;">
+                                    <input type="hidden" name="service_id" value="{{ .ID }}">
+                                    <button type="submit" class="btn btn-danger-outline" onclick="return confirm('Are you sure you want to remove this service? This will delete it from the public storefront.');">Delete</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {{ end }}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // Sidebar Toggle
+        document.getElementById('toggleSidebarBtn').addEventListener('click', function() {
+            document.getElementById('sidebar').classList.toggle('collapsed');
+            document.getElementById('mainContent').classList.toggle('expanded');
+        });
+
+        // Auto-hide alert banner after 3 seconds
+        document.addEventListener("DOMContentLoaded", function() {
+            var alertBanner = document.querySelector('.alert-banner');
+            if (alertBanner) {
+                setTimeout(function() {
+                    alertBanner.style.transition = "opacity 0.5s ease";
+                    alertBanner.style.opacity = "0";
+                    setTimeout(function() { alertBanner.remove(); }, 500); 
+                }, 3000);
+            }
+        });
+
+        // Prevent Scroll Jump on Form Submit
+        document.addEventListener("DOMContentLoaded", function(event) {
+            var scrollpos = sessionStorage.getItem('admin_scrollpos');
+            if (scrollpos) {
+                window.scrollTo(0, parseInt(scrollpos));
+                sessionStorage.removeItem('admin_scrollpos');
+            }
+        });
+
+        window.addEventListener("submit", function(e) {
+            sessionStorage.setItem('admin_scrollpos', window.scrollY);
+        });
+    </script>
+</body>
 </html>

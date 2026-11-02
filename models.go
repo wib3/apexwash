@@ -27,6 +27,7 @@ type PageData struct {
 	CustomerError string
 	LoginError    string
 	Identifier    string
+	Message       string // Added for toast notifications
 }
 
 // AdminDashboardData holds all data for the /admin control center

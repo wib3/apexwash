@@ -29,6 +29,7 @@ func main() {
 	http.HandleFunc("/admin/service/save", SaveServiceHandler)
 	http.HandleFunc("/admin/service/delete", DeleteServiceHandler)
 	http.HandleFunc("/admin/user/update", UpdateUserAccessHandler)
+	http.HandleFunc("/admin/service/update", UpdateServicePriceHandler)
 
 	port := os.Getenv("PORT")
 	if port == "" {
